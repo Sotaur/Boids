@@ -167,11 +167,8 @@ class Flock:
     def active_block_combo_update(self):
         network_size = len(self.graph.network)
         for boid in self.boids:
-            node = boid.node
-            node.toggle_active()
-        if not self.setup_done:
-            self.calc_block_mates(network_size)
-            self.setup_done = True
+            boid.node.toggle_active()
+        self.calc_block_mates(network_size)
         self.nearest_neighbors()
         for boid in self.boids:
             node = boid.node
