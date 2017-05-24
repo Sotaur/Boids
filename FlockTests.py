@@ -304,10 +304,9 @@ def text_string():
     picked_from = str(flock.nearest_num) if flock.neighbor_type == 's' or flock.neighbor_select == 'n' or flock.neighbor_type == 'a' else 'N/A'
     frustration_string = ", frustration power: " + str(flock.frustration_power) if flock.frustration else ", periodic boundaries"
     neighbor_type = ", neighbor type: " + neighbor_string[flock.neighbor_type]
-    if flock.neighbor_type == 'a':
-        neighbor_type += "; " + active_type[flock.active_type]
+    pick_type = selection_string[flock.neighbor_select] if flock.neighbor_type != 'a' else pick_type = active_type[flock.active_type]
     before_split = "Number of boids: " + str(len(flock.boids)) + ", number of flock mates: " + str(flock.num_neighbors) + ", picking from: "\
-        + picked_from + " using " + selection_string[flock.neighbor_select] + ", reflection type: " + reflection_string[flock.reflection_type] +\
+        + picked_from + " using " + pick_type + ", reflection type: " + reflection_string[flock.reflection_type] +\
         neighbor_type + ", neighbor recalculation interval: " + str(flock.calculate_flock_mates) + frustration_string
     split = before_split.split(" ")
     return " ".join(split[:round(len(split) / 2) + 1]) + '\n' + " ".join(split[round(len(split) / 2) + 1:])
