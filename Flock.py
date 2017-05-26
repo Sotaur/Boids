@@ -39,6 +39,8 @@ class Flock:
         self.num_topological = 0
         self.block_size = 0
         self.setup_done = False
+        self.alpha_center = .5
+        self.alpha_range = .5
 
     def __str__(self):
         to_return = ""
@@ -98,6 +100,8 @@ class Flock:
             self.beta_angular(boid)
         elif self.reflection_type == 'dn':
             self.dual_angular(boid)
+        elif self.reflection_type == 'ca':
+            self.alpha_angular(boid, self.alpha_center, self.alpha_range)
 
     def active_update(self):
         if self.active_type == 'r':
@@ -168,7 +172,9 @@ class Flock:
         network_size = len(self.graph.network)
         for boid in self.boids:
             boid.node.toggle_active()
-        self.calc_block_mates(network_size)
+        if not self.setup_done:
+            self.setup_done = True
+            self.calc_block_mates(network_size)
         self.nearest_neighbors()
         for boid in self.boids:
             node = boid.node
@@ -176,8 +182,13 @@ class Flock:
             self.active_add_nearest(boid, node)
             boid.clear_nearest()
 
-    def add_block_mates(self, block, node):
-        block_mates = random.sample(block, self.num_topological)
+    def add_block_mates(self, block, i, j, node):
+        block_mates = []
+        if j + self.num_topological < i + self.block_size:
+            block_mates = block[j: j + self.num_topological]
+        else:
+            block_mates = block[j: i + self.block_size]
+            block_mates += block[: (j + self.num_topological) % (i + self.block_size)]
         for other_node in block_mates:
             index = other_node.id - 1
             node.add_active(node.edges[index])
@@ -188,7 +199,7 @@ class Flock:
                 block = self.graph.network[i: i + self.block_size]
                 for j in range(i, i + self.block_size):
                     node = self.graph.network[j]
-                    self.add_block_mates(block, node)
+                    self.add_block_mates(block, i, j, node)
             else:
                 block = self.graph.network[i: network_size]
                 for j in range(i, network_size):
@@ -199,7 +210,7 @@ class Flock:
                             node.add_active(node.edges[index])
                     else:
                         node = self.graph.network[j]
-                        self.add_block_mates(block, node)
+                        self.add_block_mates(block, i, j, node)
 
     def new_nearest_neighbors(self):
         self.nearest_neighbors()
@@ -227,8 +238,8 @@ class Flock:
     def will_turn(self, boid):
         direction = (boid.position[0]) * boid.velocity[0] + (boid.position[1]) * boid.velocity[1]
         position = boid.position_mag()
-        turn_prob = pow(position / self.basin, self.frustration_power)
-        if turn_prob < random.uniform(0, 1) or direction >= 0:
+        if position <= 5.5 or direction >= 0:
+            turn_prob = pow(position / self.basin, self.frustration_power)
             return turn_prob > random.uniform(0, 1)
         return False
 
@@ -262,9 +273,9 @@ class Flock:
             prime_mag = np.linalg.norm(v_prime)
             boid.velocity = np.ndarray.tolist(v_prime / prime_mag)
 
-    def alpha_angular(self, boid):
+    def alpha_angular(self, boid, center=.5, range=.5):
         if self.will_turn(boid):
-            alpha = random.uniform(0, 1)
+            alpha = random.uniform(center - range, center + range)
             p_angle = math.atan2(boid.position[1], boid.position[0])
             v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
             angle = p_angle - math.pi + alpha * v_angle
