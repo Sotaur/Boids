@@ -675,6 +675,13 @@ def start():
         square_args = []
         sine_args = []
         func_args = 0
+        if flock.neighbor_type == 'a':
+            flock.active_type = file.readline()[:-1].split(" ")[0]
+            if flock.active_type == 'bc':
+                flock.block_size = int(file.readline()[:-1].split(" ")[0])
+                flock.num_topological = int(file.readline()[:-1].split(" ")[0])
+            elif flock.active_type == 'rn':
+                flock.random_int = int(file.readline()[:-1].split(" ")[0])
         if flock.neighbor_type == 'u':
             square_args.append(int(file.readline()[:-1].split(" ")[0]))  # number of waves
             square_args.append(float(file.readline()[:-1].split(" ")[0]))  # maximum
@@ -711,13 +718,6 @@ def start():
         elif flock.reflection_type == 'ca':
             flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
             flock.alpha_range = float(file.readline()[:-1].split(" ")[0])  # vary by
-        elif flock.neighbor_type == 'a':
-            flock.active_type = file.readline()[:-1].split(" ")[0]
-            if flock.active_type == 'bc':
-                flock.block_size = int(file.readline()[:-1].split(" ")[0])
-                flock.num_topological = int(file.readline()[:-1].split(" ")[0])
-            elif flock.active_type == 'rn':
-                flock.random_int = int(file.readline()[:-1].split(" ")[0])
         if option == 'p':
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
@@ -735,5 +735,5 @@ def start():
     finish_time = time.perf_counter()
     print("\nRuntime: " + str(finish_time - start_time))
 
-# cProfile.run('start()')
+#  cProfile.run('start()')
 start()
