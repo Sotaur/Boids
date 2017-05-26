@@ -286,6 +286,7 @@ reflection_string = {
     'an': 'alpha angular reflection',
     'bn': 'beta angular reflection',
     'dn': 'dual angular reflection',
+    'ca': 'constrained alpha angular'
 
 }
 selection_string = {
@@ -303,10 +304,11 @@ def text_string():
     global active_type
     picked_from = str(flock.nearest_num) if flock.neighbor_type == 's' or flock.neighbor_select == 'n' or flock.neighbor_type == 'a' else 'N/A'
     frustration_string = ", frustration power: " + str(flock.frustration_power) if flock.frustration else ", periodic boundaries"
+    reflection = ", reflection type: " + reflection_string[flock.reflection_type] if flock.frustration else ", no reflection"
     neighbor_type = ", neighbor type: " + neighbor_string[flock.neighbor_type]
     pick_type = selection_string[flock.neighbor_select] if flock.neighbor_type != 'a' else active_type[flock.active_type]
     before_split = "Number of boids: " + str(len(flock.boids)) + ", number of flock mates: " + str(flock.num_neighbors) + ", picking from: "\
-        + picked_from + " using " + pick_type + ", reflection type: " + reflection_string[flock.reflection_type] +\
+        + picked_from + " using " + pick_type + reflection +\
         neighbor_type + ", neighbor recalculation interval: " + str(flock.calculate_flock_mates) + frustration_string
     split = before_split.split(" ")
     return " ".join(split[:round(len(split) / 2) + 1]) + '\n' + " ".join(split[round(len(split) / 2) + 1:])
@@ -433,6 +435,9 @@ def neighbor_data_out(data, square_args, sine_args, func_args):
         if flock.active_type == 'bc':
             data.write("Block size, " + str(flock.block_size) + '\n')
             data.write("Number of topological neighbors, " + str(flock.num_topological) + '\n')
+    if flock.reflection_type == 'ca':
+        data.write('Alpha center, ' + str(flock.alpha_center) + '\n')
+        data.write('Alpha range, ' + str(flock.alpha_range) + '\n')
 
 """
 display_plot initializes the flock and graph, and plots the flock movements.
@@ -618,7 +623,7 @@ def gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func
     for num_recalc in range(range_min, range_max, range_step):
         for num_neighbor in range(min_neighbor, max_neighbor, neighbor_step):
             for num_pick in range(min_pick, max_pick, pick_step):
-                for frustration in range(min_frustration, max_frustration, frustration_step):
+                for frustration in range(int(min_frustration), int(max_frustration), frustration_step):
                     bar.update(i)
                     flock.calculate_flock_mates = num_recalc if range_min != 0 else 'N/A'
                     flock.num_neighbors = num_neighbor
@@ -703,6 +708,9 @@ def start():
             func_args = []
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # lower
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # upper
+        elif flock.reflection_type == 'ca':
+            flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
+            flock.alpha_range = float(file.readline()[:-1].split(" ")[0])  # vary by
         elif flock.neighbor_type == 'a':
             flock.active_type = file.readline()[:-1].split(" ")[0]
             if flock.active_type == 'bc':
