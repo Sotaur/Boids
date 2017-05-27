@@ -599,8 +599,10 @@ def start_data(num_boids, square_args=None, sine_args=None):
 
 
 def gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func_args):
-    range_min = int(input("Minimum number of iterations for recalculating neighbors: ")) if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 0
+    range_min = flock.calculate_flock_mates if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 0
     vary_range = input("Vary the number of iterations to recalculate neighbors? (y/n) ") if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 'n'
+    if vary_range == 'y':
+        print("Minimum number of iterations for recalculating neighbors: " + str(flock.calculate_flock_mates))
     range_max = int(input("Maximum number of iterations for recalculating neighbors: ")) + 1 if vary_range == 'y' else range_min + 1
     range_step = int(input("Range step size: ")) if vary_range == 'y' else 1
     vary_neighbor = input("Vary the number of neighbors? (y/n) ")
@@ -728,6 +730,9 @@ def start():
             flock.triangle_high = float(file.readline()[:-1].split(" ")[0])  # high
             flock.triangle_low = float(file.readline()[:-1].split(" ")[0])  # low of the triangle distribution
         if option == 'p':
+            flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
+                (flock.neighbor_type == 's' or flock.neighbor_type == 'a')\
+                and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
             if save == 'y' and multi == 'y':
@@ -735,7 +740,6 @@ def start():
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
                 gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func_args)
             else:
-                flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if (flock.neighbor_type == 's' or flock.neighbor_type == 'a') and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
                 display_plot(num_boids, save, single, fps, frames, square_args, sine_args, True, func_args)
