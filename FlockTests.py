@@ -625,7 +625,7 @@ def gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func
     frustration_step = 1
     max_value = ((range_max - range_min) / range_step) * (max_frustration - min_frustration) * ((max_neighbor - min_neighbor) / neighbor_step) * ((max_pick - min_pick) / pick_step)
     bar = progressbar.ProgressBar(max_value=int(max_value))
-    i = 1
+    i = 0
     bar.start()
     for num_recalc in range(range_min, range_max, range_step):
         for num_neighbor in range(min_neighbor, max_neighbor, neighbor_step):
