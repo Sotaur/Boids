@@ -41,6 +41,8 @@ class Flock:
         self.setup_done = False
         self.alpha_center = .5
         self.alpha_range = .5
+        self.triangle_high = 1
+        self.triangle_low = 0
 
     def __str__(self):
         to_return = ""
@@ -102,6 +104,8 @@ class Flock:
             self.dual_angular(boid)
         elif self.reflection_type == 'ca':
             self.alpha_angular(boid, self.alpha_center, self.alpha_range)
+        elif self.reflection_type == 'ta':
+            self.triangle_alpha(boid)
 
     def active_update(self):
         if self.active_type == 'r':
@@ -276,6 +280,14 @@ class Flock:
     def alpha_angular(self, boid, center=.5, range=.5):
         if self.will_turn(boid):
             alpha = random.uniform(center - range, center + range)
+            p_angle = math.atan2(boid.position[1], boid.position[0])
+            v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
+            angle = p_angle - math.pi + alpha * v_angle
+            boid.velocity = [self.velocity * math.cos(angle), self.velocity * math.sin(angle)]
+
+    def triangle_alpha(self, boid):
+        if self.will_turn(boid):
+            alpha = random.triangular(self.triangle_low, self.triangle_high, self.alpha_center)
             p_angle = math.atan2(boid.position[1], boid.position[0])
             v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
             angle = p_angle - math.pi + alpha * v_angle

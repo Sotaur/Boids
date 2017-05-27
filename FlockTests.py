@@ -286,7 +286,8 @@ reflection_string = {
     'an': 'alpha angular reflection',
     'bn': 'beta angular reflection',
     'dn': 'dual angular reflection',
-    'ca': 'constrained alpha angular'
+    'ca': 'constrained alpha angular',
+    'ta': 'triangular alpha angular'
 
 }
 selection_string = {
@@ -438,6 +439,10 @@ def neighbor_data_out(data, square_args, sine_args, func_args):
     if flock.reflection_type == 'ca':
         data.write('Alpha center, ' + str(flock.alpha_center) + '\n')
         data.write('Alpha range, ' + str(flock.alpha_range) + '\n')
+    elif flock.reflection_type == 'ta':
+        data.write('Alpha center, ' + str(flock.alpha_center) + '\n')
+        data.write('High, ' + str(flock.triangle_high) + '\n')
+        data.write('Low, ' + str(flock.triangle_low) + '\n')
 
 """
 display_plot initializes the flock and graph, and plots the flock movements.
@@ -715,9 +720,13 @@ def start():
             func_args = []
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # lower
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # upper
-        elif flock.reflection_type == 'ca':
+        if flock.reflection_type == 'ca':
             flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
             flock.alpha_range = float(file.readline()[:-1].split(" ")[0])  # vary by
+        elif flock.reflection_type == 'ta':
+            flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
+            flock.triangle_high = float(file.readline()[:-1].split(" ")[0])  # high
+            flock.triangle_low = float(file.readline()[:-1].split(" ")[0])  # low of the triangle distribution
         if option == 'p':
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
