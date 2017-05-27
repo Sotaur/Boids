@@ -730,11 +730,11 @@ def start():
             flock.triangle_high = float(file.readline()[:-1].split(" ")[0])  # high
             flock.triangle_low = float(file.readline()[:-1].split(" ")[0])  # low of the triangle distribution
         if option == 'p':
-            flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
-                (flock.neighbor_type == 's' or flock.neighbor_type == 'a')\
-                and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
+            flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
+                (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
+                and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
             if save == 'y' and multi == 'y':
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
