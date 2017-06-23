@@ -330,6 +330,9 @@ class Flock:
 
     def reset(self):
         self.boids = []
+        self.group_one = []
+        self.group_two = []
+        self.flock_order_param = []
         self.setup_done = False
 
     def nearest_neighbors(self):
