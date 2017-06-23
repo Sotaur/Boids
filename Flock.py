@@ -256,7 +256,7 @@ class Flock:
     def will_turn(self, boid):
         direction = (boid.position[0]) * boid.velocity[0] + (boid.position[1]) * boid.velocity[1]
         position = boid.position_mag()
-        if position <= 5.5 or direction >= 0:
+        if position <= self.basin or direction >= 0:
             turn_prob = pow(position / self.basin, self.frustration_power)
             return turn_prob > random.uniform(0, 1)
         return False
