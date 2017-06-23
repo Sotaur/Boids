@@ -477,7 +477,7 @@ def data_out(directory, func_args, time_started, local_time=None):
     else:
         data.write('Periodic boundary conditions were used\n')
     order_parameter_out(data)
-    data.write("Number, Max, Min, Average, Median, Std Dev\n")
+    data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
     for item in graph.scc_data:
         data.write(str(item)[1:-1] + '\n')
     data.write('\n')
