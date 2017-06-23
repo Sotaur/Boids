@@ -444,6 +444,16 @@ def neighbor_data_out(data, square_args, sine_args, func_args):
         data.write('High, ' + str(flock.triangle_high) + '\n')
         data.write('Low, ' + str(flock.triangle_low) + '\n')
 
+
+def order_parameter_out(data):
+    data.write("Group size, " + str(flock.group_size) + '\n')
+    data.write("Flock, Group 1, Group 2\n")
+    for i in range(0, len(flock.group_two)):
+        data.write(str(flock.flock_order_param[i]) + ", "
+                   + str(flock.group_one[i]) + ", "
+                   + str(flock.group_two[i]) + '\n')
+
+
 """
 display_plot initializes the flock and graph, and plots the flock movements.
 Can save the data to an mp4 file if desired, or can directly view the animation.
@@ -493,6 +503,7 @@ def display_plot(num_boids, save, single, fps, frames, square_args, sine_args, i
             data.write("The frustration power was " + str(flock.frustration_power) + '\n')
         else:
             data.write('Periodic boundary conditions were used\n')
+        order_parameter_out(data)
         data.write("Number, Max, Min, Average, Median, Std Dev\n")
         for item in graph.scc_data:
             data.write(str(item)[1:-1] + '\n')
@@ -658,6 +669,8 @@ def start():
             # alpha angular (an)
             # beta angular (bn)
             # dual angular (dn)
+            # constrained alpha angular (ca)
+            # triangular alpha angular (ta)
             flock.reflection_type = file.readline()[:-1].split(" ")[0]
             flock.alpha = int(file.readline()[:-1].split(" ")[0]) if flock.reflection_type == 'f' else 0  # alpha for fixed alpha reflection
         num_boids = int(file.readline()[:-1].split(" ")[0])  # number of boids
@@ -677,8 +690,9 @@ def start():
         # Neighbor selection method
         # nearest neighbors (n)
         # random (r)
-        # topologically (t)
+        # topological (t)
         flock.neighbor_select = file.readline()[:-1].split(" ")[0] if flock.neighbor_type != 'a' else 'a'
+        flock.group_size = int(file.readline()[:-1].split(" ")[0])
         square_args = []
         sine_args = []
         func_args = 0
