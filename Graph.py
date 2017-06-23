@@ -77,19 +77,22 @@ class Graph:
         max_len = 0
         min_len = math.inf
         data = []
+        num_large_scc = 0
         for scc in sccs:
             scc_len = len(scc)
             if scc_len > max_len:
                 max_len = scc_len
             elif scc_len < min_len:
                 min_len = scc_len
+            if scc_len > self.flock.num_neighbors:
+                num_large_scc += 1
             data.append(len(scc))
         avg_len = statistics.mean(data)
         median = statistics.median_high(data)
         std_dev = None
         if len(data) > 1:
             std_dev = statistics.stdev(data)
-        self.scc_data.append((len(sccs), max_len, min_len, avg_len, median, std_dev))
+        self.scc_data.append((len(sccs), max_len, min_len, avg_len, median, std_dev, num_large_scc))
 
     # Strongly Connected Component
     def calculate_scc(self):
