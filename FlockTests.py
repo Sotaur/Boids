@@ -44,9 +44,9 @@ def simple_neighbor(node, neighbor):
 """
 
 
-def uniform_square(node, neighbor, square_args, i):
-    number = (i % square_args[0]) + 1
-    edge_function = Square(square_args[1], square_args[2], square_args[3], square_args[3] / number)
+def uniform_square(node, neighbor, func_args, i):
+    number = (i % func_args[0]) + 1
+    edge_function = Square(func_args[1], func_args[2], func_args[3], func_args[3] / number)
     edge = Edge(neighbor, edge_function)
     node.add_edge(edge)
 
@@ -56,9 +56,9 @@ def uniform_square(node, neighbor, square_args, i):
 """
 
 
-def non_uniform_square(node, neighbor, square_args, i):
-    number = i % len(square_args)
-    wave = square_args[number]
+def non_uniform_square(node, neighbor, func_args, i):
+    number = i % len(func_args)
+    wave = func_args[number]
     edge_function = Square(wave[0], wave[1], wave[2], wave[3])
     edge = Edge(neighbor, edge_function)
     node.add_edge(edge)
@@ -68,8 +68,8 @@ def non_uniform_square(node, neighbor, square_args, i):
 """
 
 
-def single_sine(node, neighbor, sine_args):
-    edge_function = Sine([random.uniform(-math.pi, math.pi)], sine_args[0], sine_args[1], sine_args[2])
+def single_sine(node, neighbor, func_args):
+    edge_function = Sine([random.uniform(-math.pi, math.pi)], func_args[0], func_args[1], func_args[2])
     edge = Edge(neighbor, edge_function)
     node.add_edge(edge)
 
@@ -79,11 +79,11 @@ def single_sine(node, neighbor, sine_args):
 """
 
 
-def multi_sine(node, neighbor, sine_args):
+def multi_sine(node, neighbor, func_args):
     phase = []
-    for i in range(0, len(sine_args[1])):
+    for i in range(0, len(func_args[1])):
         phase.append(random.uniform(-math.pi, math.pi))
-    edge_function = Sine(phase, sine_args[0], sine_args[1], sine_args[2])
+    edge_function = Sine(phase, func_args[0], func_args[1], func_args[2])
     edge = Edge(neighbor, edge_function)
     node.add_edge(edge)
 
@@ -150,17 +150,17 @@ def active_edge(node, neighbor):
     node.add_edge(edge)
 
 
-def set_neighbor(node, neighbor, square_args, sine_args, i, func_args):
+def set_neighbor(node, neighbor, i, func_args):
     if flock.neighbor_type == "s":
         simple_neighbor(node, neighbor)
     elif flock.neighbor_type == "u":
-        uniform_square(node, neighbor, square_args, i)
+        uniform_square(node, neighbor, func_args, i)
     elif flock.neighbor_type == "n":
-        non_uniform_square(node, neighbor, square_args, i)
+        non_uniform_square(node, neighbor, func_args, i)
     elif flock.neighbor_type == 'ss':
-        single_sine(node, neighbor, sine_args)
+        single_sine(node, neighbor, func_args)
     elif flock.neighbor_type == 'ms':
-        multi_sine(node, neighbor, sine_args)
+        multi_sine(node, neighbor, func_args)
     elif flock.neighbor_type == 'ne':
         neg_exp(node, neighbor)
     elif flock.neighbor_type == 'ce':
@@ -183,14 +183,14 @@ make_flock_mates assigns the boids their flock mates based on neighbor_select.
 """
 
 
-def make_flock_mates(square_args, sine_args, func_args):
+def make_flock_mates(func_args):
     if flock.neighbor_select == 'n':
         flock.nearest_neighbors()
         for node in graph.network:
             neighbors = node.boid.nearest
             neighbor_num = 0
             for neighbor in neighbors:
-                set_neighbor(node, neighbor[1].node, square_args, sine_args, graph.network.index(node) + neighbor_num, func_args)
+                set_neighbor(node, neighbor[1].node, graph.network.index(node) + neighbor_num, func_args)
                 neighbor_num += 1
     elif flock.neighbor_select == 'r':
         for node in graph.network:
@@ -198,7 +198,7 @@ def make_flock_mates(square_args, sine_args, func_args):
                 neighbor = graph.get_node_by_id(random.randint(0, len(graph.network) - 1))
                 while neighbor is None:
                     neighbor = graph.get_node_by_id(random.randint(0, len(graph.network) - 1))
-                set_neighbor(node, neighbor, square_args, sine_args, graph.network.index(node) + i, func_args)
+                set_neighbor(node, neighbor, graph.network.index(node) + i, func_args)
     elif flock.neighbor_select == 't':
         for i in range(0, len(graph.network)):
             neighbors = []
@@ -208,7 +208,7 @@ def make_flock_mates(square_args, sine_args, func_args):
                 neighbors = graph.network[i + 1: (i + flock.num_neighbors + 2)]
             neighbor_num = 0
             for neighbor in neighbors:
-                set_neighbor(graph.network[i], neighbor, square_args, sine_args, neighbor_num + i, func_args)
+                set_neighbor(graph.network[i], neighbor, neighbor_num + i, func_args)
                 neighbor_num += 1
     elif flock.neighbor_select == 'a':
         for node in graph.network:
@@ -223,13 +223,13 @@ each boid. The algorithm for calculating the flock mates is as follows: find the
 """
 
 
-def initialize_graph(num_boids, square_args, sine_args, func_args):
+def initialize_graph(num_boids, func_args):
     for i in range(1, num_boids + 1):
         boid = Boid()
         node = Node(boid, i) if flock.neighbor_type != 'a' else ActiveNode(boid, i)
         graph.add_node(node)
     create_flock()
-    make_flock_mates(square_args, sine_args, func_args)
+    make_flock_mates(func_args)
 
 
 def create_flock():
@@ -241,6 +241,7 @@ def create_flock():
 def update_flock(duration):
     for i in range(duration):
         flock.update_flock(i)
+        graph.calculate_scc()
 
 """
 The grid obtained in get_flock_grid is a matrix containing the positions of a particular subgroup of boids
@@ -387,7 +388,7 @@ def plot_single(interval, bar, individual_bar, text):
     return dots
 
 
-def neighbor_data_out(data, square_args, sine_args, func_args):
+def neighbor_data_out(data, func_args):
     global neighbor_string
     global selection_string
     global reflection_string
@@ -399,14 +400,14 @@ def neighbor_data_out(data, square_args, sine_args, func_args):
     if flock.neighbor_type == 'a' or flock.neighbor_select == 'n':
         data.write("Neighbors were picked out of " + str(flock.nearest_num) + '\n')
     if flock.neighbor_type == 'u':
-        data.write("Number of waves, " + str(square_args[0]) + '\n')
-        data.write("Minimum value, " + str(square_args[1]) + '\n')
-        data.write("Maximum value, " + str(square_args[2]) + '\n')
-        data.write("Period, " + str(square_args[3]) + '\n')
+        data.write("Number of waves, " + str(func_args[0]) + '\n')
+        data.write("Minimum value, " + str(func_args[1]) + '\n')
+        data.write("Maximum value, " + str(func_args[2]) + '\n')
+        data.write("Period, " + str(func_args[3]) + '\n')
     elif flock.neighbor_type == 'n':
-        data.write("Number of waves, " + str(len(square_args)) + '\n')
+        data.write("Number of waves, " + str(len(func_args)) + '\n')
         wave_num = 0
-        for wave in square_args:
+        for wave in func_args:
             wave_num += 1
             data.write("Wave, " + str(wave_num) + '\n')
             data.write("Minimum value, " + str(wave[0]) + '\n')
@@ -414,13 +415,13 @@ def neighbor_data_out(data, square_args, sine_args, func_args):
             data.write("Period, " + str(wave[2]) + '\n')
             data.write("Initial phase, " + str(wave[3]) + '\n')
     elif flock.neighbor_type == 'ss':
-        data.write("Amplitude, " + str(sine_args[0]) + '\n')
-        data.write("Angular velocity, " + str(sine_args[1]) + '\n')
-        data.write("Offset, " + str(sine_args[2]) + '\n')
+        data.write("Amplitude, " + str(func_args[0]) + '\n')
+        data.write("Angular velocity, " + str(func_args[1]) + '\n')
+        data.write("Offset, " + str(func_args[2]) + '\n')
     elif flock.neighbor_type == 'ms':
-        data.write("Number of waves, " + str(len(sine_args)) + '\n')
+        data.write("Number of waves, " + str(len(func_args)) + '\n')
         wave_num = 0
-        for wave in sine_args:
+        for wave in func_args:
             wave_num += 1
             data.write("Wave, " + str(wave_num) + '\n')
             data.write("Amplitude, " + str(wave[0]) + '\n')
@@ -454,6 +455,35 @@ def order_parameter_out(data):
                    + str(flock.group_two[i]) + '\n')
 
 
+def data_out(directory, func_args, time_started, local_time=None):
+    local_time = time.localtime() if local_time is None else local_time  # Lets animation files have the same timestamp as their data files
+    data = open(
+        directory + "/data-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5]) + '.csv', 'w')
+    graph.calculate_scc_stats()
+    finish = time.perf_counter()
+    data.write("Runtime, " + str(finish - time_started) + '\n')
+    data.write("Lowest scc count, " + str(graph.scc_min) + '\n')
+    data.write("Highest scc count, " + str(graph.scc_max) + '\n')
+    data.write("Average scc count, " + str(graph.scc_avg) + '\n')
+    data.write("SCC median, " + str(graph.scc_median) + '\n')
+    data.write("SCC standard deviation, " + str(graph.scc_std_dev) + '\n')
+    data.write("SCC max median, " + str(graph.scc_high_median) + '\n')
+    data.write("SCC avg median, " + str(graph.scc_med_mean) + '\n')
+    neighbor_data_out(data, func_args)
+    data.write("The number of boids was " + str(len(flock.boids)) + '\n')
+    data.write("The number of flock mates was " + str(flock.num_neighbors) + '\n')
+    if flock.frustration:
+        data.write("The frustration power was " + str(flock.frustration_power) + '\n')
+    else:
+        data.write('Periodic boundary conditions were used\n')
+    order_parameter_out(data)
+    data.write("Number, Max, Min, Average, Median, Std Dev\n")
+    for item in graph.scc_data:
+        data.write(str(item)[1:-1] + '\n')
+    data.write('\n')
+    data.close()
+
+
 """
 display_plot initializes the flock and graph, and plots the flock movements.
 Can save the data to an mp4 file if desired, or can directly view the animation.
@@ -461,11 +491,11 @@ Some stuttering may be present when viewing directly due to neighbor recalculati
 """
 
 
-def display_plot(num_boids, save, single, fps, frames, square_args, sine_args, individual_bar, func_args):
+def display_plot(num_boids, save, single, fps, frames, individual_bar, func_args):
     start = time.perf_counter()
     flock.reset()
     graph.reset()
-    initialize_graph(num_boids, square_args, sine_args, func_args)
+    initialize_graph(num_boids, func_args)
     plt.axis([-8, 8, -8, 8])
     text = text_string()
     if save == 'y':
@@ -485,30 +515,7 @@ def display_plot(num_boids, save, single, fps, frames, square_args, sine_args, i
         local_time = time.localtime()
         filename = directory + "/animation-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5]) + '.mp4'
         ani.save(filename, fps=fps, bitrate=-1)
-        data = open(directory + "/data-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5]) + '.csv', 'w')
-        graph.calculate_scc_stats()
-        finish = time.perf_counter()
-        data.write("Runtime, " + str(finish - start) + '\n')
-        data.write("Lowest scc count, " + str(graph.scc_min) + '\n')
-        data.write("Highest scc count, " + str(graph.scc_max) + '\n')
-        data.write("Average scc count, " + str(graph.scc_avg) + '\n')
-        data.write("SCC median, " + str(graph.scc_median) + '\n')
-        data.write("SCC standard deviation, " + str(graph.scc_std_dev) + '\n')
-        data.write("SCC max median, " + str(graph.scc_high_median) + '\n')
-        data.write("SCC avg median, " + str(graph.scc_med_mean) + '\n')
-        neighbor_data_out(data, square_args, sine_args, func_args)
-        data.write("The number of boids was " + str(num_boids) + '\n')
-        data.write("The number of flock mates was " + str(flock.num_neighbors) + '\n')
-        if flock.frustration:
-            data.write("The frustration power was " + str(flock.frustration_power) + '\n')
-        else:
-            data.write('Periodic boundary conditions were used\n')
-        order_parameter_out(data)
-        data.write("Number, Max, Min, Average, Median, Std Dev\n")
-        for item in graph.scc_data:
-            data.write(str(item)[1:-1] + '\n')
-        data.write('\n')
-        data.close()
+        data_out(directory, func_args, start, local_time)
     else:
         ani = animation.FuncAnimation(fig, plot_flock, frames=frames * fps, fargs=["", False, text])
         plt.show()
@@ -521,7 +528,7 @@ maximum number of sccs found between the runs.
 """
 
 
-def run_avg(runs, num_boids, num_iterations, square_args=None, sine_args=None):
+def run_avg(runs, num_boids, num_iterations, func_args=None):
     date = datetime.date(2017, 1, 1)
     directory = base_directory + str(num_boids) + 'data/' + str(date.today())
     if not os.path.exists(directory):
@@ -539,7 +546,7 @@ def run_avg(runs, num_boids, num_iterations, square_args=None, sine_args=None):
         print("Starting run " + str(i))
         data.write(str(i) + "th run\n")
         start = time.perf_counter()
-        initialize_graph(num_boids, square_args)
+        initialize_graph(num_boids, func_args)
         data.write("Initialization " + str(i) + " done\n")
         initialization = time.perf_counter()
         update_flock(num_iterations)
@@ -589,7 +596,7 @@ def run_avg(runs, num_boids, num_iterations, square_args=None, sine_args=None):
     data.write("Median of the standard deviation for each SCC, " + str(graph.scc_std_dev_median) + '\n')
     data.write("Total average time elapsed, " + str(initialization_avg + colors_avg + update_avg) + '\n')
     data.write("Total time elapsed, " + str(runs * (initialization_avg + colors_avg + update_avg)) + '\n')
-    neighbor_data_out(data, square_args=square_args, sine_args=sine_args)
+    neighbor_data_out(data, func_args=func_args)
     data.write("The number of runs was " + str(runs) + '\n')
     data.write("The number of boids was " + str(num_boids) + '\n')
     data.write("The number of flock mates was " + str(flock.num_neighbors))
@@ -598,18 +605,20 @@ def run_avg(runs, num_boids, num_iterations, square_args=None, sine_args=None):
     data.close()
 
 
-def start_data(num_boids, square_args=None, sine_args=None):
-    runs = int(input("Number of times: "))
-    num_iterations = int(input("Number of iterations: "))
-    range_min = int(input("Minimum number of iterations for recalculating neighbors: "))
-    range_max = int(input("Maximum number of iterations for recalculating neighbors: "))
-    range_step = int(input("Step size: "))
-    for i in range(range_min, range_max + 1, range_step):
-        flock.calculate_flock_mates = i
-        run_avg(runs, num_boids, num_iterations, square_args=square_args)
+def order_params_only(num_boids, num_iterations, func_args):
+    time_started = time.perf_counter()
+    flock.reset()
+    graph.reset()
+    initialize_graph(num_boids, func_args)
+    update_flock(num_iterations)
+    date = datetime.date(2017, 1, 1)
+    directory = base_directory + 'order-' + str(date.today())
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    data_out(directory, func_args, time_started)
 
 
-def gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func_args):
+def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iterations):
     range_min = flock.calculate_flock_mates if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 0
     vary_range = input("Vary the number of iterations to recalculate neighbors? (y/n) ") if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 'n'
     if vary_range == 'y':
@@ -634,7 +643,8 @@ def gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func
         print("Minimum frustration power: " + str(min_frustration))
     max_frustration = int(input("Maximum frustration power: ")) + 1 if vary_frustration == 'y' else min_frustration + 1
     frustration_step = 1
-    max_value = ((range_max - range_min) / range_step) * (max_frustration - min_frustration) * ((max_neighbor - min_neighbor) / neighbor_step) * ((max_pick - min_pick) / pick_step)
+    runs = int(input("Number of times: ")) if mode == 'd' else 1
+    max_value = ((range_max - range_min) / range_step) * (max_frustration - min_frustration) * ((max_neighbor - min_neighbor) / neighbor_step) * ((max_pick - min_pick) / pick_step) * runs
     bar = progressbar.ProgressBar(max_value=int(max_value))
     i = 0
     bar.start()
@@ -647,7 +657,12 @@ def gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func
                     flock.num_neighbors = num_neighbor
                     flock.nearest_num = num_pick
                     flock.frustration_power = frustration
-                    display_plot(num_boids, save, single, fps, frames, square_args, sine_args, False, func_args)
+                    if mode == 'p':
+                        display_plot(num_boids, save, single, fps, frames, False, func_args)
+                    elif mode == 'd':
+                        run_avg(runs, num_boids, num_iterations, func_args=func_args)
+                    elif mode == 'o':
+                        order_params_only(num_boids, num_iterations, func_args)
                     i += 1
 
 
@@ -693,9 +708,7 @@ def start():
         # topological (t)
         flock.neighbor_select = file.readline()[:-1].split(" ")[0] if flock.neighbor_type != 'a' else 'a'
         flock.group_size = int(file.readline()[:-1].split(" ")[0])
-        square_args = []
-        sine_args = []
-        func_args = 0
+        func_args = []
         if flock.neighbor_type == 'a':
             flock.active_type = file.readline()[:-1].split(" ")[0]
             if flock.active_type == 'bc':
@@ -704,10 +717,10 @@ def start():
             elif flock.active_type == 'rn':
                 flock.random_int = int(file.readline()[:-1].split(" ")[0])
         if flock.neighbor_type == 'u':
-            square_args.append(int(file.readline()[:-1].split(" ")[0]))  # number of waves
-            square_args.append(float(file.readline()[:-1].split(" ")[0]))  # maximum
-            square_args.append(float(file.readline()[:-1].split(" ")[0]))  # minimum
-            square_args.append(float(file.readline()[:-1].split(" ")[0]))  # period
+            func_args.append(int(file.readline()[:-1].split(" ")[0]))  # number of waves
+            func_args.append(float(file.readline()[:-1].split(" ")[0]))  # maximum
+            func_args.append(float(file.readline()[:-1].split(" ")[0]))  # minimum
+            func_args.append(float(file.readline()[:-1].split(" ")[0]))  # period
         elif flock.neighbor_type == 'n':
             num_waves = int(file.readline()[:-1].split(" ")[0])  # number of waves
             for i in range(0, num_waves):
@@ -716,24 +729,23 @@ def start():
                 wave.append(float(file.readline()[:-1].split(" ")[0]))  # minimum
                 wave.append(float(file.readline()[:-1].split(" ")[0]))  # period
                 wave.append(float(file.readline()[:-1].split(" ")[0]))  # initial phase
-                square_args.append(wave)
+                func_args.append(wave)
         elif flock.neighbor_type == 'ss':
-            sine_args.append([float(file.readline()[:-1].split(" ")[0])])  # amplitude
-            sine_args.append([float(file.readline()[:-1].split(" ")[0])])  # angular velocity
-            sine_args.append([float(file.readline()[:-1].split(" ")[0])])  # offset
+            func_args.append([float(file.readline()[:-1].split(" ")[0])])  # amplitude
+            func_args.append([float(file.readline()[:-1].split(" ")[0])])  # angular velocity
+            func_args.append([float(file.readline()[:-1].split(" ")[0])])  # offset
         elif flock.neighbor_type == 'ms':
             num_waves = int(file.readline()[:-1].split(" ")[0])  # number of waves
-            sine_args = [[], [], []]
+            func_args = [[], [], []]
             for i in range(0, num_waves):
-                sine_args[0].append(float(file.readline()[:-1].split(" ")[0]))  # amplitude
-                sine_args[1].append(float(file.readline()[:-1].split(" ")[0]))  # angular velocity
-                sine_args[2].append(float(file.readline()[:-1].split(" ")[0]))  # offset
+                func_args[0].append(float(file.readline()[:-1].split(" ")[0]))  # amplitude
+                func_args[1].append(float(file.readline()[:-1].split(" ")[0]))  # angular velocity
+                func_args[2].append(float(file.readline()[:-1].split(" ")[0]))  # offset
         elif flock.neighbor_type == 'ce':
             func_args = float(file.readline()[:-1].split(" ")[0])  # cutoff
         elif flock.neighbor_type == 'ie':
             func_args = float(file.readline()[:-1].split(" ")[0])  # period
         elif flock.neighbor_type == 'ri':
-            func_args = []
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # lower
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # upper
         if flock.reflection_type == 'ca':
@@ -752,13 +764,17 @@ def start():
             if save == 'y' and multi == 'y':
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
-                gen_plots(num_boids, save, single, fps, frames, square_args, sine_args, func_args)
+                gen_data(num_boids, save, single, fps, frames, func_args, option, 0)
             else:
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
-                display_plot(num_boids, save, single, fps, frames, square_args, sine_args, True, func_args)
-        elif option == 'd':
-            start_data(num_boids, square_args, sine_args=sine_args)
+                display_plot(num_boids, save, single, fps, frames, True, func_args)
+        else:
+            flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
+                (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
+                and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
+            num_iterations = int(file.readline()[:-1].split(" ")[0])
+            gen_data(num_boids, 'n', 'f', 0, 0, func_args, option, num_iterations)
     finish_time = time.perf_counter()
     print("\nRuntime: " + str(finish_time - start_time))
 
