@@ -45,8 +45,8 @@ class Boid:
                     y_avg += edge.go_to().boid.velocity[1] * weight
         x_avg /= effective_num
         y_avg /= effective_num
-        norm = math.sqrt(pow(x_avg, 2) + pow(y_avg, 2)) if (x_avg != 0 and y_avg != 0) else 1
-        self.new_velocity = [x_avg / norm, y_avg / norm]
+        norm = math.sqrt(pow(x_avg, 2) + pow(y_avg, 2)) if (x_avg != 0 and y_avg != 0) else 0.15
+        self.new_velocity = [x_avg*0.15 / norm, y_avg*0.15 / norm]
 
     def update_velocity(self):
         self.velocity = self.new_velocity
