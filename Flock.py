@@ -43,6 +43,12 @@ class Flock:
         self.alpha_range = .5
         self.triangle_high = 1
         self.triangle_low = 0
+        self.group_one_start = 0
+        self.group_two_start = 0
+        self.group_size = 0
+        self.group_one = []
+        self.group_two = []
+        self.flock_order_param = []
 
     def __str__(self):
         to_return = ""
@@ -60,6 +66,11 @@ class Flock:
                 boid.position = [random.uniform(-5, 5), random.uniform(-5, 5)]
             boid.angle = random.uniform(-math.pi * 2, math.pi * 2)
             boid.velocity = [self.velocity * math.cos(boid.angle), self.velocity * math.sin(boid.angle)]
+        self.group_one_start = random.randint(0, len(self.boids) - 1 - self.group_size)
+        self.group_two_start = random.randint(0, len(self.boids) - 1 - self.group_size)
+        while self.group_one_start < self.group_two_start < self.group_one_start + self.group_size\
+                and self.group_one_start < self.group_two_start + self.group_two_start < self.group_one_start + self.group_size:
+            self.group_two_start = random.randint(0, len(self.boids) - 1 - self.group_size)
 
     def update_flock(self, time):
         self.current_time = time
@@ -82,6 +93,9 @@ class Flock:
                 self.new_random_neighbors(boid)
         elif self.neighbor_type == 'a' and (time % self.calculate_flock_mates == 0):
             self.active_update()
+        self.flock_order_param.append(self.calculate_order_parameters(self.boids))
+        self.group_one.append(self.calculate_order_parameters(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
+        self.group_two.append(self.calculate_order_parameters(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
 
     def reflect(self, boid):
         if self.reflection_type == "pu":
@@ -277,9 +291,9 @@ class Flock:
             prime_mag = np.linalg.norm(v_prime)
             boid.velocity = np.ndarray.tolist(v_prime / prime_mag)
 
-    def alpha_angular(self, boid, center=.5, range=.5):
+    def alpha_angular(self, boid, center=.5, range_size=.5):
         if self.will_turn(boid):
-            alpha = random.uniform(center - range, center + range)
+            alpha = random.uniform(center - range_size, center + range_size)
             p_angle = math.atan2(boid.position[1], boid.position[0])
             v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
             angle = p_angle - math.pi + alpha * v_angle
@@ -336,3 +350,12 @@ class Flock:
             boid.nearest = random.sample(boid.nearest, k=self.num_neighbors)
         # print(str(calc - start))
         # sys.stdout.flush()
+
+    def calculate_order_parameters(self, group):
+        vx = 0
+        vy = 0
+        for boid in group:
+            vx += boid.velocity[0]
+            vy += boid.velocity[1]
+        mag = math.sqrt(vx*vx + vy*vy)
+        return mag/(len(group) * self.velocity)
