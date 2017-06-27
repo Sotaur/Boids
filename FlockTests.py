@@ -455,6 +455,15 @@ def order_parameter_out(data):
                    + str(flock.group_two[i]) + '\n')
 
 
+def phase_out(data):
+    data.write("Phase Space\n")
+    data.write("Boid 1 x, Boid 1 vx, Boid 1 y, Boid 1 vy,"
+               "Boid 2 x, Boid 2 vx, Boid 2 y, Boid 2 vy,"
+               "Boid 3 x, Boid 3 vx, Boid 3 y, Boid 3 vy\n")
+    for i in range(0, len(flock.phase)):
+        data.write(str(flock.phase[i])[1:-1] + '\n')
+
+
 def data_out(directory, func_args, time_started, local_time=None):
     local_time = time.localtime() if local_time is None else local_time  # Lets animation files have the same timestamp as their data files
     data = open(
@@ -477,6 +486,7 @@ def data_out(directory, func_args, time_started, local_time=None):
     else:
         data.write('Periodic boundary conditions were used\n')
     order_parameter_out(data)
+    #  phase_out(data)
     data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
     for item in graph.scc_data:
         data.write(str(item)[1:-1] + '\n')
@@ -645,7 +655,7 @@ def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iteratio
     frustration_step = 1
     runs = int(input("Number of times: ")) if mode == 'd' else 1
     max_value = ((range_max - range_min) / range_step) * (max_frustration - min_frustration) * ((max_neighbor - min_neighbor) / neighbor_step) * ((max_pick - min_pick) / pick_step) * runs
-    bar = progressbar.ProgressBar(max_value=int(max_value))
+    bar = progressbar.ProgressBar(max_value=int(max_value) + 1)
     i = 0
     bar.start()
     for num_recalc in range(range_min, range_max, range_step):
