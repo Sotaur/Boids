@@ -49,6 +49,10 @@ class Flock:
         self.group_one = []
         self.group_two = []
         self.flock_order_param = []
+        self.phase = []
+        self.phase_1 = 0
+        self.phase_2 = 0
+        self.phase_3 = 0
 
     def __str__(self):
         to_return = ""
@@ -71,6 +75,13 @@ class Flock:
         while self.group_one_start < self.group_two_start < self.group_one_start + self.group_size\
                 and self.group_one_start < self.group_two_start + self.group_two_start < self.group_one_start + self.group_size:
             self.group_two_start = random.randint(0, len(self.boids) - 1 - self.group_size)
+        self.phase_1 = random.randint(0, len(self.boids) - 1)
+        self.phase_2 = random.randint(0, len(self.boids) - 1)
+        while self.phase_1 == self.phase_2:
+            self.phase_2 = random.randint(0, len(self.boids) - 1)
+        self.phase_3 = random.randint(0, len(self.boids) - 1)
+        while self.phase_3 == self.phase_2 or self.phase_3 == self.phase_1:
+            self.phase_3 = random.randint(0, len(self.boids) - 1)
 
     def update_flock(self, time):
         self.current_time = time
@@ -96,6 +107,7 @@ class Flock:
         self.flock_order_param.append(self.calculate_order_parameters(self.boids))
         self.group_one.append(self.calculate_order_parameters(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
         self.group_two.append(self.calculate_order_parameters(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
+        #  self.get_phase()
 
     def reflect(self, boid):
         if self.reflection_type == "pu":
@@ -362,3 +374,12 @@ class Flock:
             vy += boid.velocity[1]
         mag = math.sqrt(vx*vx + vy*vy)
         return mag/(len(group) * self.velocity)
+
+    def get_phase(self):
+        boid1 = self.boids[self.phase_1]
+        boid2 = self.boids[self.phase_2]
+        boid3 = self.boids[self.phase_3]
+        phase = (boid1.position[0], boid1.velocity[0], boid1.position[1], boid1.velocity[1],
+                 boid2.position[0], boid2.velocity[0], boid2.position[1], boid2.velocity[1],
+                 boid3.position[0], boid3.velocity[0], boid3.position[1], boid3.velocity[1])
+        self.phase.append(phase)
