@@ -46,13 +46,16 @@ class Flock:
         self.group_one_start = 0
         self.group_two_start = 0
         self.group_size = 0
-        self.group_one = []
-        self.group_two = []
+        self.group_one_align = []
+        self.group_two_align = []
         self.flock_order_param = []
         self.phase = []
         self.phase_1 = 0
         self.phase_2 = 0
         self.phase_3 = 0
+        self.flock_velocity = []
+        self.group_one_vel = []
+        self.group_two_vel = []
 
     def __str__(self):
         to_return = ""
@@ -104,10 +107,13 @@ class Flock:
                 self.new_random_neighbors(boid)
         elif self.neighbor_type == 'a' and (time % self.calculate_flock_mates == 0):
             self.active_update()
-        self.flock_order_param.append(self.calculate_order_parameters(self.boids))
-        self.group_one.append(self.calculate_order_parameters(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
-        self.group_two.append(self.calculate_order_parameters(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
-        #  self.get_phase()
+        self.flock_order_param.append(self.calculate_align_param(self.boids))
+        self.group_one_align.append(self.calculate_align_param(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
+        self.group_two_align.append(self.calculate_align_param(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
+        self.get_phase()
+        self.flock_velocity.append(self.get_velocity(self.boids))
+        self.group_one_vel.append(self.get_velocity(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
+        self.group_two_vel.append(self.get_velocity(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
 
     def reflect(self, boid):
         if self.reflection_type == "pu":
@@ -342,10 +348,11 @@ class Flock:
 
     def reset(self):
         self.boids = []
-        self.group_one = []
-        self.group_two = []
+        self.group_one_align = []
+        self.group_two_align = []
         self.flock_order_param = []
         self.setup_done = False
+        self.phase = []
 
     def nearest_neighbors(self):
         # start = time.perf_counter()
@@ -366,7 +373,7 @@ class Flock:
         # print(str(calc - start))
         # sys.stdout.flush()
 
-    def calculate_order_parameters(self, group):
+    def calculate_align_param(self, group):
         vx = 0
         vy = 0
         for boid in group:
@@ -375,11 +382,38 @@ class Flock:
         mag = math.sqrt(vx*vx + vy*vy)
         return mag/(len(group) * self.velocity)
 
+    def get_velocity(self, group):
+        to_return = []
+        for boid in group:
+            to_return.append(boid.velocity)
+        return to_return
+
+    def calculate_rotation_param(self, group):
+        order_param = 0
+        if len(group) == 0:
+            return 0
+        for k in range(0, len(group[0])):
+            for j in range(0, len(group) - 1):
+                v = group[j][k]
+                v1 = group[j + 1][k]
+                order_param += v[0] * v1[1] - v1[0] * v[1]
+        return order_param
+
+    def calculate_rotation_params(self):
+        to_return = []
+        for i in range(0, len(self.flock_velocity)):
+            end_index = i + 5 if len(self.flock_velocity) - i > 5 else len(self.flock_velocity) - 1
+            rotation_flock = self.calculate_rotation_param(self.flock_velocity[i:end_index + 1]) / (len(self.boids) * 5 * pow(self.velocity, 2))
+            rotation_g1 = self.calculate_rotation_param(self.group_one_vel[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
+            rotation_g2 = self.calculate_rotation_param(self.group_two_vel[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
+            to_return.append((rotation_flock, rotation_g1, rotation_g2))
+        return to_return
+
     def get_phase(self):
         boid1 = self.boids[self.phase_1]
         boid2 = self.boids[self.phase_2]
         boid3 = self.boids[self.phase_3]
-        phase = (boid1.position[0], boid1.velocity[0], boid1.position[1], boid1.velocity[1],
-                 boid2.position[0], boid2.velocity[0], boid2.position[1], boid2.velocity[1],
-                 boid3.position[0], boid3.velocity[0], boid3.position[1], boid3.velocity[1])
+        phase = (math.atan2(boid1.position[1], boid1.position[0]), math.atan2(boid1.velocity[1], boid1.velocity[0]),
+                 math.atan2(boid2.position[1], boid2.position[0]), math.atan2(boid2.velocity[1], boid2.velocity[0]),
+                 math.atan2(boid3.position[1], boid3.position[0]), math.atan2(boid3.velocity[1], boid3.velocity[0]))
         self.phase.append(phase)

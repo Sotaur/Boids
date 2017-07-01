@@ -238,10 +238,12 @@ def create_flock():
     flock.initialize_flock()
 
 
-def update_flock(duration):
+def update_flock(duration, bar=None):
     for i in range(duration):
         flock.update_flock(i)
         graph.calculate_scc()
+        if bar is not None:
+            bar.update(i)
 
 """
 The grid obtained in get_flock_grid is a matrix containing the positions of a particular subgroup of boids
@@ -448,18 +450,24 @@ def neighbor_data_out(data, func_args):
 
 def order_parameter_out(data):
     data.write("Group size, " + str(flock.group_size) + '\n')
+    data.write("Alignment order parameter\n")
     data.write("Flock, Group 1, Group 2\n")
-    for i in range(0, len(flock.group_two)):
+    for i in range(0, len(flock.group_two_align)):
         data.write(str(flock.flock_order_param[i]) + ", "
-                   + str(flock.group_one[i]) + ", "
-                   + str(flock.group_two[i]) + '\n')
+                   + str(flock.group_one_align[i]) + ", "
+                   + str(flock.group_two_align[i]) + '\n')
+    align_param = flock.calculate_rotation_params()
+    data.write("Rotational order parameter\n")
+    data.write("Flock, Group 1, Group 2\n")
+    for item in align_param:
+        data.write(str(item)[1:-1] + '\n')
 
 
 def phase_out(data):
     data.write("Phase Space\n")
-    data.write("Boid 1 x, Boid 1 vx, Boid 1 y, Boid 1 vy,"
-               "Boid 2 x, Boid 2 vx, Boid 2 y, Boid 2 vy,"
-               "Boid 3 x, Boid 3 vx, Boid 3 y, Boid 3 vy\n")
+    data.write("Boid 1 position angle, Boid 1 velocity angle,"
+               "Boid 2 position angle, Boid 2 velocity angle,"
+               "Boid 3 position angle, Boid 3 velocity angle\n")
     for i in range(0, len(flock.phase)):
         data.write(str(flock.phase[i])[1:-1] + '\n')
 
@@ -486,7 +494,7 @@ def data_out(directory, func_args, time_started, local_time=None):
     else:
         data.write('Periodic boundary conditions were used\n')
     order_parameter_out(data)
-    #  phase_out(data)
+    phase_out(data)
     data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
     for item in graph.scc_data:
         data.write(str(item)[1:-1] + '\n')
@@ -620,7 +628,9 @@ def order_params_only(num_boids, num_iterations, func_args):
     flock.reset()
     graph.reset()
     initialize_graph(num_boids, func_args)
-    update_flock(num_iterations)
+    bar = progressbar.ProgressBar()
+    bar.start(num_iterations)
+    update_flock(num_iterations, bar)
     date = datetime.date(2017, 1, 1)
     directory = base_directory + 'order-' + str(date.today())
     if not os.path.exists(directory):
@@ -655,7 +665,7 @@ def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iteratio
     frustration_step = 1
     runs = int(input("Number of times: ")) if mode == 'd' else 1
     max_value = ((range_max - range_min) / range_step) * (max_frustration - min_frustration) * ((max_neighbor - min_neighbor) / neighbor_step) * ((max_pick - min_pick) / pick_step) * runs
-    bar = progressbar.ProgressBar(max_value=int(max_value) + 1)
+    bar = progressbar.ProgressBar(max_value=int(max_value))
     i = 0
     bar.start()
     for num_recalc in range(range_min, range_max, range_step):
@@ -674,6 +684,15 @@ def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iteratio
                     elif mode == 'o':
                         order_params_only(num_boids, num_iterations, func_args)
                     i += 1
+
+
+def duplicate_order_params(num_duplicate, num_boids, num_iterations, func_args):
+    bar = progressbar.ProgressBar(max_value=num_duplicate)
+    bar.start()
+    for i in range(0, num_duplicate + 1):
+        bar.update(i)
+        order_params_only(num_boids, num_iterations, func_args)
+        flock.reset()
 
 
 def start():
@@ -784,7 +803,15 @@ def start():
                 (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
                 and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
             num_iterations = int(file.readline()[:-1].split(" ")[0])
-            gen_data(num_boids, 'n', 'f', 0, 0, func_args, option, num_iterations)
+            multi = file.readline()[:-1].split(" ")[0]
+            duplicate = file.readline()[:-1].split(" ")[0] if option == 'o' else 'n'
+            if duplicate == 'n' and multi == 'y':
+                gen_data(num_boids, 'n', 'f', 0, 0, func_args, option, num_iterations)
+            elif duplicate == 'n' and multi == 'n':
+                order_params_only(num_boids, num_iterations, func_args)
+            else:
+                num_duplicate = int(file.readline()[:-1].split(" ")[0])
+                duplicate_order_params(num_duplicate, num_boids, num_iterations, func_args)
     finish_time = time.perf_counter()
     print("\nRuntime: " + str(finish_time - start_time))
 
