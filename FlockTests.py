@@ -290,7 +290,8 @@ reflection_string = {
     'bn': 'beta angular reflection',
     'dn': 'dual angular reflection',
     'ca': 'constrained alpha angular',
-    'ta': 'triangular alpha angular'
+    'ta': 'triangular alpha angular',
+    'fa': "fixed alpha angular"
 
 }
 selection_string = {
@@ -450,17 +451,18 @@ def neighbor_data_out(data, func_args):
 
 def order_parameter_out(data):
     data.write("Group size, " + str(flock.group_size) + '\n')
-    data.write("Alignment order parameter\n")
+    data.write("\nAlignment order parameter\n")
     data.write("Flock, Group 1, Group 2\n")
     for i in range(0, len(flock.group_two_align)):
         data.write(str(flock.flock_order_param[i]) + ", "
                    + str(flock.group_one_align[i]) + ", "
                    + str(flock.group_two_align[i]) + '\n')
     align_param = flock.calculate_rotation_params()
-    data.write("Rotational order parameter\n")
+    data.write("\nRotational order parameter\n")
     data.write("Flock, Group 1, Group 2\n")
     for item in align_param:
         data.write(str(item)[1:-1] + '\n')
+    data.write('\n')
 
 
 def phase_out(data):
@@ -740,6 +742,7 @@ def start():
         func_args = []
         if flock.neighbor_type == 'a':
             flock.active_type = file.readline()[:-1].split(" ")[0]
+            flock.alpha = None
             if flock.active_type == 'bc':
                 flock.block_size = int(file.readline()[:-1].split(" ")[0])
                 flock.num_topological = int(file.readline()[:-1].split(" ")[0])
@@ -784,6 +787,8 @@ def start():
             flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
             flock.triangle_high = float(file.readline()[:-1].split(" ")[0])  # high
             flock.triangle_low = float(file.readline()[:-1].split(" ")[0])  # low of the triangle distribution
+        elif flock.reflection_type == 'fa':
+            flock.alpha = float(file.readline()[:-1].split(" ")[0])
         if option == 'p':
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
@@ -815,5 +820,5 @@ def start():
     finish_time = time.perf_counter()
     print("\nRuntime: " + str(finish_time - start_time))
 
-#  cProfile.run('start()')
-start()
+cProfile.run('start()')
+# start()
