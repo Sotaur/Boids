@@ -11,6 +11,7 @@ class Boid:
         self.position = []
         self.node = None
         self.nearest = []
+        self.calc_velocity = None
 
     def __str__(self):
         to_return = ""
@@ -25,28 +26,31 @@ class Boid:
     def position_mag(self):
         return math.sqrt(pow(self.position[0], 2) + pow(self.position[1], 2))
 
-    def calc_velocity(self, time):
+    def active_update(self, time):
         x_avg = self.velocity[0]
         y_avg = self.velocity[1]
         effective_num = 1
-        if type(self.node) is ActiveNode:
-            for edge in self.node.active:
-                weight = edge.update(time)
-                if weight != 0:
-                    effective_num += abs(weight)
-                    x_avg += edge.go_to().boid.velocity[0] * weight
-                    y_avg += edge.go_to().boid.velocity[1] * weight
-        else:
-            for edge in self.node.edges:
-                weight = edge.update(time)
-                if weight != 0:
-                    effective_num += abs(weight)
-                    x_avg += edge.go_to().boid.velocity[0] * weight
-                    y_avg += edge.go_to().boid.velocity[1] * weight
+        for edge in self.node.active:
+            weight = edge.update(time)
+            if weight != 0:
+                effective_num += abs(weight)
+                x_avg += edge.go_to().boid.velocity[0] * weight
+                y_avg += edge.go_to().boid.velocity[1] * weight
+
+    def normal_update(self, time):
+        x_avg = self.velocity[0]
+        y_avg = self.velocity[1]
+        effective_num = 1
+        for edge in self.node.edges:
+            weight = edge.update(time)
+            if weight != 0:
+                effective_num += abs(weight)
+                x_avg += edge.go_to().boid.velocity[0] * weight
+                y_avg += edge.go_to().boid.velocity[1] * weight
         x_avg /= effective_num
         y_avg /= effective_num
         norm = math.sqrt(pow(x_avg, 2) + pow(y_avg, 2)) if (x_avg != 0 and y_avg != 0) else 0.15
-        self.new_velocity = [x_avg*0.15 / norm, y_avg*0.15 / norm]
+        self.new_velocity = [x_avg * 0.15 / norm, y_avg * 0.15 / norm]
 
     def update_velocity(self):
         self.velocity = self.new_velocity

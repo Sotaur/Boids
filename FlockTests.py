@@ -227,6 +227,10 @@ def initialize_graph(num_boids, func_args):
     for i in range(1, num_boids + 1):
         boid = Boid()
         node = Node(boid, i) if flock.neighbor_type != 'a' else ActiveNode(boid, i)
+        if flock.neighbor_type == 'a':
+            boid.calc_velocity = boid.active_update
+        else:
+            boid.calc_velocity = boid.normal_update
         graph.add_node(node)
     create_flock()
     make_flock_mates(func_args)
@@ -667,7 +671,7 @@ def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iteratio
     frustration_step = 1
     runs = int(input("Number of times: ")) if mode == 'd' else 1
     max_value = ((range_max - range_min) / range_step) * (max_frustration - min_frustration) * ((max_neighbor - min_neighbor) / neighbor_step) * ((max_pick - min_pick) / pick_step) * runs
-    bar = progressbar.ProgressBar(max_value=int(max_value))
+    bar = progressbar.ProgressBar(max_value=int(max_value) + 1)
     i = 0
     bar.start()
     for num_recalc in range(range_min, range_max, range_step):
