@@ -56,6 +56,7 @@ class Flock:
         self.flock_velocity = []
         self.group_one_vel = []
         self.group_two_vel = []
+        self.reflect = None
 
     def __str__(self):
         to_return = ""
@@ -85,6 +86,7 @@ class Flock:
         self.phase_3 = random.randint(0, len(self.boids) - 1)
         while self.phase_3 == self.phase_2 or self.phase_3 == self.phase_1:
             self.phase_3 = random.randint(0, len(self.boids) - 1)
+        self.set_reflect()
 
     def update_flock(self, time):
         self.current_time = time
@@ -115,29 +117,31 @@ class Flock:
         self.group_one_vel.append(self.get_velocity(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
         self.group_two_vel.append(self.get_velocity(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
 
-    def reflect(self, boid):
+    def set_reflect(self):
         if self.reflection_type == "pu":
-            self.position_u_turn(boid)
+            self.reflect = self.position_u_turn
         elif self.reflection_type == 'vu':
-            self.velocity_u_turn(boid)
+            self.reflect = self.velocity_u_turn
         elif self.reflection_type == 'p':
-            self.pseudo_specular(boid)
+            self.reflect = self.pseudo_specular
         elif self.reflection_type == 's':
-            self.specular(boid, 0)
+            self.reflect = self.specular
         elif self.reflection_type == 'a':
-            self.specular(boid)
+            self.reflect = self.specular
         elif self.reflection_type == 'f':
-            self.specular(boid, self.alpha)
+            self.reflect = self.specular
         elif self.reflection_type == 'an':
-            self.alpha_angular(boid)
+            self.reflect = self.alpha_angular
         elif self.reflection_type == 'bn':
-            self.beta_angular(boid)
+            self.reflect = self.beta_angular
         elif self.reflection_type == 'dn':
-            self.dual_angular(boid)
+            self.reflect = self.dual_angular
         elif self.reflection_type == 'ca':
-            self.alpha_angular(boid, self.alpha_center, self.alpha_range)
+            self.reflect = self.alpha_angular
         elif self.reflection_type == 'ta':
-            self.triangle_alpha(boid)
+            self.reflect = self.triangle_alpha
+        elif self.reflection_type == 'fa':
+            self.reflect = self.fixed_alpha
 
     def active_update(self):
         if self.active_type == 'r':
@@ -295,23 +299,23 @@ class Flock:
             new_angle = initial_angle + random.choice(direction) * (1 + random.uniform(0, 1)) * math.pi / 2
             boid.velocity = [self.velocity * math.cos(new_angle), self.velocity * math.sin(new_angle)]
 
-    def specular(self, boid, alpha=None):
+    def specular(self, boid):
         if self.will_turn(boid):
-            if alpha is None:
-                alpha = random.uniform(0, 2)
+            if self.alpha is None:
+                self.alpha = random.uniform(0, 2)
             velocity = np.array(boid.velocity)
             position = np.array(boid.position)
             mag_position = np.linalg.norm(position)
             v_parallel = (velocity.dot(position) / mag_position)
             v_parallel *= position / mag_position
             v_perp = velocity - v_parallel
-            v_prime = velocity - 2 * (v_parallel + alpha * v_perp)
+            v_prime = velocity - 2 * (v_parallel + self.alpha * v_perp)
             prime_mag = np.linalg.norm(v_prime)
             boid.velocity = np.ndarray.tolist(v_prime / prime_mag)
 
-    def alpha_angular(self, boid, center=.5, range_size=.5):
+    def alpha_angular(self, boid):
         if self.will_turn(boid):
-            alpha = random.uniform(center - range_size, center + range_size)
+            alpha = random.uniform(self.alpha_center - self.alpha_range, self.alpha_center + self.alpha_range)
             p_angle = math.atan2(boid.position[1], boid.position[0])
             v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
             angle = p_angle - math.pi + alpha * v_angle
@@ -323,6 +327,13 @@ class Flock:
             p_angle = math.atan2(boid.position[1], boid.position[0])
             v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
             angle = p_angle - math.pi + alpha * v_angle
+            boid.velocity = [self.velocity * math.cos(angle), self.velocity * math.sin(angle)]
+
+    def fixed_alpha(self, boid):
+        if self.will_turn(boid):
+            p_angle = math.atan2(boid.position[1], boid.position[0])
+            v_angle = math.atan2(boid.velocity[1], boid.velocity[0])
+            angle = p_angle - math.pi + self.alpha * v_angle
             boid.velocity = [self.velocity * math.cos(angle), self.velocity * math.sin(angle)]
 
     def beta_angular(self, boid):
@@ -353,6 +364,9 @@ class Flock:
         self.flock_order_param = []
         self.setup_done = False
         self.phase = []
+        self.group_two_vel = []
+        self.group_one_vel = []
+        self.flock_velocity = []
 
     def nearest_neighbors(self):
         # start = time.perf_counter()
