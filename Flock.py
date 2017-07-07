@@ -54,9 +54,15 @@ class Flock:
         self.phase_2 = 0
         self.phase_3 = 0
         self.flock_velocity = []
-        self.group_one_vel = []
-        self.group_two_vel = []
+        self.group_one_rotate = []
+        self.group_two_rotate = []
         self.reflect = None
+        self.one_and_flock = []
+        self.one_and_group = []
+        self.group_and_group = []
+        self.boid_one = None
+        self.group_one_corr_start = 0
+        self.group_two_corr_start = 0
 
     def __str__(self):
         to_return = ""
@@ -87,6 +93,14 @@ class Flock:
         while self.phase_3 == self.phase_2 or self.phase_3 == self.phase_1:
             self.phase_3 = random.randint(0, len(self.boids) - 1)
         self.set_reflect()
+        self.boid_one = random.randint(0, len(self.boids))
+        self.group_one_corr_start = random.randint(0, len(self.boids) - self.num_neighbors * 2)
+        while self.group_one_corr_start <= self.boid_one <= self.group_one_corr_start + 2 * self.num_neighbors:
+            self.group_one_corr_start = random.randint(0, len(self.boids) - self.num_neighbors * 2)
+        self.group_two_corr_start = random.randint(0, len(self.boids) - self.num_neighbors * 2)
+        while self.group_one_corr_start <= self.group_two_corr_start <= self.group_one_corr_start + 2 * self.num_neighbors\
+                or self.group_two_corr_start <= self.group_one_corr_start <= self.group_two_corr_start + 2 * self.num_neighbors:
+            self.group_two_corr_start = random.randint(0, len(self.boids) - self.num_neighbors * 2)
 
     def update_flock(self, time):
         self.current_time = time
@@ -109,13 +123,7 @@ class Flock:
                 self.new_random_neighbors(boid)
         elif self.neighbor_type == 'a' and (time % self.calculate_flock_mates == 0):
             self.active_update()
-        self.flock_order_param.append(self.calculate_align_param(self.boids))
-        self.group_one_align.append(self.calculate_align_param(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
-        self.group_two_align.append(self.calculate_align_param(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
-        self.get_phase()
-        self.flock_velocity.append(self.get_velocity(self.boids))
-        self.group_one_vel.append(self.get_velocity(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
-        self.group_two_vel.append(self.get_velocity(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
+        self.calculate_parameters()
 
     def set_reflect(self):
         if self.reflection_type == "pu":
@@ -364,9 +372,12 @@ class Flock:
         self.flock_order_param = []
         self.setup_done = False
         self.phase = []
-        self.group_two_vel = []
-        self.group_one_vel = []
+        self.group_two_rotate = []
+        self.group_one_rotate = []
         self.flock_velocity = []
+        self.one_and_flock = []
+        self.one_and_group = []
+        self.group_and_group = []
 
     def nearest_neighbors(self):
         # start = time.perf_counter()
@@ -418,10 +429,23 @@ class Flock:
         for i in range(0, len(self.flock_velocity)):
             end_index = i + 5 if len(self.flock_velocity) - i > 5 else len(self.flock_velocity) - 1
             rotation_flock = self.calculate_rotation_param(self.flock_velocity[i:end_index + 1]) / (len(self.boids) * 5 * pow(self.velocity, 2))
-            rotation_g1 = self.calculate_rotation_param(self.group_one_vel[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
-            rotation_g2 = self.calculate_rotation_param(self.group_two_vel[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
+            rotation_g1 = self.calculate_rotation_param(self.group_one_rotate[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
+            rotation_g2 = self.calculate_rotation_param(self.group_two_rotate[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
             to_return.append((rotation_flock, rotation_g1, rotation_g2))
         return to_return
+
+    def calculate_correlation(self, group1, group2):
+        v1 = [0, 0]
+        for boid in group1:
+            v1[0] += boid.velocity[0]
+            v1[1] += boid.velocity[1]
+        v2 = [0, 0]
+        for boid in group2:
+            v2[0] += boid.velocity[0]
+            v2[1] += boid.velocity[1]
+        v1_mag = math.sqrt(pow(v1[0], 2) + pow(v1[1], 2))
+        v2_mag = math.sqrt(pow(v2[0], 2) + pow(v2[1], 2))
+        return (v1[0] / v1_mag) * (v2[0] / v2_mag) + (v1[1] / v1_mag) * (v2[1] / v2_mag)
 
     def get_phase(self):
         boid1 = self.boids[self.phase_1]
@@ -431,3 +455,21 @@ class Flock:
                  math.atan2(boid2.position[1], boid2.position[0]), math.atan2(boid2.velocity[1], boid2.velocity[0]),
                  math.atan2(boid3.position[1], boid3.position[0]), math.atan2(boid3.velocity[1], boid3.velocity[0]))
         self.phase.append(phase)
+
+    def calculate_parameters(self):
+        self.flock_order_param.append(self.calculate_align_param(self.boids))
+        self.group_one_align.append(
+            self.calculate_align_param(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
+        self.group_two_align.append(
+            self.calculate_align_param(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
+        self.get_phase()
+        self.flock_velocity.append(self.get_velocity(self.boids))
+        self.group_one_rotate.append(
+            self.get_velocity(self.boids[self.group_one_start: self.group_one_start + self.group_size]))
+        self.group_two_rotate.append(
+            self.get_velocity(self.boids[self.group_two_start: self.group_two_start + self.group_size]))
+        self.one_and_flock.append(self.calculate_correlation([self.boids[self.boid_one]], self.boids))
+        self.one_and_group.append(self.calculate_correlation([self.boids[self.boid_one]],
+                                                             self.boids[self.group_one_corr_start:self.group_one_corr_start + 2 * self.num_neighbors]))
+        self.group_and_group.append(self.calculate_correlation(self.boids[self.group_one_corr_start:self.group_one_corr_start + 2 * self.num_neighbors],
+                                                               self.boids[self.group_two_corr_start:self.group_two_corr_start + 2 * self.num_neighbors]))

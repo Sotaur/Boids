@@ -462,11 +462,19 @@ def order_parameter_out(data):
                    + str(flock.group_one_align[i]) + ", "
                    + str(flock.group_two_align[i]) + '\n')
     align_param = flock.calculate_rotation_params()
+    data.write("-,-,-,-,-,-,-\n")
     data.write("\nRotational order parameter\n")
     data.write("Flock, Group 1, Group 2\n")
     for item in align_param:
         data.write(str(item)[1:-1] + '\n')
-    data.write('\n')
+    data.write("-,-,-,-,-,-,-\n")
+    data.write("\nCorrelation parameter\n")
+    data.write("One and Flock, One and Group, Group and Group\n")
+    for i in range(0, len(flock.one_and_group)):
+        data.write(str(flock.one_and_flock[i]) + ",")
+        data.write(str(flock.one_and_group[i]) + ",")
+        data.write(str(flock.group_and_group[i]) + "\n")
+    data.write("-,-,-,-,-,-,-\n")
 
 
 def phase_out(data):
@@ -824,5 +832,5 @@ def start():
     finish_time = time.perf_counter()
     print("\nRuntime: " + str(finish_time - start_time))
 
-cProfile.run('start()')
-# start()
+#  cProfile.run('start()')
+start()
