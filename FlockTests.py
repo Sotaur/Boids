@@ -242,13 +242,33 @@ def create_flock():
     flock.initialize_flock()
 
 
+def scc_order_parameters(sccs):
+    end_large = len(sccs)
+    for j in range(0, len(sccs)):
+        if len(sccs[j]) <= flock.num_neighbors:
+            end_large = j
+            break
+    sccs = sccs[:end_large]
+    if len(sccs) > 1:
+        boid_velocities = []
+        for scc in sccs:
+            group = []
+            for node in scc:
+                group.append(node.boid)
+            boid_velocities.append(flock.get_velocity(group))
+        flock.scc_velocity.append(boid_velocities)
+
+
 def update_flock(duration, bar=None):
     for i in range(duration):
         flock.update_flock(i)
-        graph.calculate_scc()
+        sccs = graph.calculate_scc()
+        sccs.sort(key=lambda scc: len(scc), reverse=True)
+        if flock.calculate_flock_mates % flock.segment_size == 0 \
+                and duration % flock.calculate_flock_mates == 0:
+            scc_order_parameters(sccs)
         if bar is not None:
             bar.update(i)
-
 """
 The grid obtained in get_flock_grid is a matrix containing the positions of a particular subgroup of boids
 """
@@ -337,7 +357,7 @@ def plot_flock(interval, bar, individual_bar, text):
     dots = []
     sccs = graph.calculate_scc()
     grids = []
-    sccs.sort(key=lambda scc: len(scc))
+    sccs.sort(key=lambda scc: len(scc), reverse=True)
     for scc in sccs:
         grids.append(get_flock_grid(scc))
     # grid_time = time.perf_counter()
@@ -462,19 +482,26 @@ def order_parameter_out(data):
                    + str(flock.group_one_align[i]) + ", "
                    + str(flock.group_two_align[i]) + '\n')
     align_param = flock.calculate_rotation_params()
-    data.write("-,-,-,-,-,-,-\n")
+    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
     data.write("\nRotational order parameter\n")
+    data.write("Segment size, " + str(flock.segment_size) + '\n')
     data.write("Flock, Group 1, Group 2\n")
     for item in align_param:
         data.write(str(item)[1:-1] + '\n')
-    data.write("-,-,-,-,-,-,-\n")
+    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
     data.write("\nCorrelation parameter\n")
     data.write("One and Flock, One and Group, Group and Group\n")
     for i in range(0, len(flock.one_and_group)):
         data.write(str(flock.one_and_flock[i]) + ",")
         data.write(str(flock.one_and_group[i]) + ",")
         data.write(str(flock.group_and_group[i]) + "\n")
-    data.write("-,-,-,-,-,-,-\n")
+    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    scc_params = flock.calculate_scc_rotation()
+    if len(scc_params) > 0:
+        data.write("SCC Rotational order parameter\n")
+        for item in scc_params:
+            data.write(str(item)[1:-1] + '\n')
+        data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
 
 
 def phase_out(data):
@@ -512,7 +539,17 @@ def data_out(directory, func_args, time_started, local_time=None):
     data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
     for item in graph.scc_data:
         data.write(str(item)[1:-1] + '\n')
-    data.write('\n')
+    data.write("Split Frequency\n")
+    count = 0.0
+    num_split = 0
+    for i in range(0, len(graph.scc_data), flock.calculate_flock_mates):
+        count += 1.0
+        split = graph.scc_data[i][6] - 1
+        if split > 0:
+            num_split += 1
+        data.write(str(split) + '\n')
+    data.write("Num times split, Max possible splits, Percent splits\n")
+    data.write(str(num_split) + "," + str(count) + "," + str(num_split/count) + '\n')
     data.close()
 
 
@@ -729,6 +766,7 @@ def start():
             # dual angular (dn)
             # constrained alpha angular (ca)
             # triangular alpha angular (ta)
+            # fixed alpha angular (fa)
             flock.reflection_type = file.readline()[:-1].split(" ")[0]
             flock.alpha = int(file.readline()[:-1].split(" ")[0]) if flock.reflection_type == 'f' else 0  # alpha for fixed alpha reflection
         num_boids = int(file.readline()[:-1].split(" ")[0])  # number of boids
@@ -751,6 +789,7 @@ def start():
         # topological (t)
         flock.neighbor_select = file.readline()[:-1].split(" ")[0] if flock.neighbor_type != 'a' else 'a'
         flock.group_size = int(file.readline()[:-1].split(" ")[0])
+        flock.segment_size = int(file.readline()[:-1].split(" ")[0])
         func_args = []
         if flock.neighbor_type == 'a':
             flock.active_type = file.readline()[:-1].split(" ")[0]
