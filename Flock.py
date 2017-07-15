@@ -63,6 +63,8 @@ class Flock:
         self.boid_one = None
         self.group_one_corr_start = 0
         self.group_two_corr_start = 0
+        self.segment_size = 5
+        self.scc_order = []
 
     def __str__(self):
         to_return = ""
@@ -423,16 +425,6 @@ class Flock:
                 v1 = group[j + 1][k]
                 order_param += v[0] * v1[1] - v1[0] * v[1]
         return order_param
-
-    def calculate_rotation_params(self):
-        to_return = []
-        for i in range(0, len(self.flock_velocity)):
-            end_index = i + 5 if len(self.flock_velocity) - i > 5 else len(self.flock_velocity) - 1
-            rotation_flock = self.calculate_rotation_param(self.flock_velocity[i:end_index + 1]) / (len(self.boids) * 5 * pow(self.velocity, 2))
-            rotation_g1 = self.calculate_rotation_param(self.group_one_rotate[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
-            rotation_g2 = self.calculate_rotation_param(self.group_two_rotate[i:end_index + 1]) / (self.group_size * 5 * pow(self.velocity, 2))
-            to_return.append((rotation_flock, rotation_g1, rotation_g2))
-        return to_return
 
     def calculate_correlation(self, group1, group2):
         v1 = [0, 0]
