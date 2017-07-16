@@ -64,7 +64,7 @@ class Flock:
         self.group_one_corr_start = 0
         self.group_two_corr_start = 0
         self.segment_size = 5
-        self.scc_order = []
+        self.scc_velocity = []
 
     def __str__(self):
         to_return = ""
@@ -380,6 +380,7 @@ class Flock:
         self.one_and_flock = []
         self.one_and_group = []
         self.group_and_group = []
+        self.scc_velocity = []
 
     def nearest_neighbors(self):
         # start = time.perf_counter()
@@ -425,6 +426,39 @@ class Flock:
                 v1 = group[j + 1][k]
                 order_param += v[0] * v1[1] - v1[0] * v[1]
         return order_param
+
+    def calculate_rotation_params(self):
+        to_return = []
+        for i in range(0, len(self.flock_velocity)):
+            end_index = i + self.segment_size if len(self.flock_velocity) - i > self.segment_size else len(self.flock_velocity) - 1
+            rotation_flock = self.calculate_rotation_param(self.flock_velocity[i:end_index + 1]) /\
+                             (len(self.boids) * self.segment_size * pow(self.velocity, 2))
+            rotation_g1 = self.calculate_rotation_param(self.group_one_rotate[i:end_index + 1]) /\
+                          (self.group_size * self.segment_size * pow(self.velocity, 2))
+            rotation_g2 = self.calculate_rotation_param(self.group_two_rotate[i:end_index + 1]) /\
+                          (self.group_size * self.segment_size * pow(self.velocity, 2))
+            to_return.append((rotation_flock, rotation_g1, rotation_g2))
+        return to_return
+
+    def calculate_scc_rotation(self):
+        to_return = []
+        for i in range(0, len(self.scc_velocity), self.calculate_flock_mates):
+            current_block = self.scc_velocity[i:i + self.calculate_flock_mates]
+            for j in range(0, len(current_block)):
+                params = []
+                for k in range(0, len(current_block[0])):
+                    scc = []
+                    end_index = j + self.segment_size if j + self.segment_size < len(current_block) else len(current_block) - 1
+                    for l in range(j, end_index):
+                        level_1 = current_block[l]
+                        k_slice = level_1[k:k + 1]
+                        scc.append(k_slice[0])
+
+                    param = self.calculate_rotation_param(scc) / (len(scc[0]) * self.segment_size * pow(self.velocity, 2)) \
+                            if len(scc) > 0 else 0
+                    params.append(param)
+                to_return.append(params)
+        return to_return
 
     def calculate_correlation(self, group1, group2):
         v1 = [0, 0]
