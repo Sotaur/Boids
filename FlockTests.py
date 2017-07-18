@@ -264,8 +264,7 @@ def update_flock(duration, bar=None):
         flock.update_flock(i)
         sccs = graph.calculate_scc()
         sccs.sort(key=lambda scc: len(scc), reverse=True)
-        if flock.calculate_flock_mates % flock.segment_size == 0 \
-                and duration % flock.calculate_flock_mates == 0:
+        if duration % flock.calculate_flock_mates == 0 and flock.segment_size <= flock.calculate_flock_mates:
             scc_order_parameters(sccs)
         if bar is not None:
             bar.update(i)
@@ -496,6 +495,12 @@ def order_parameter_out(data):
         data.write(str(flock.one_and_group[i]) + ",")
         data.write(str(flock.group_and_group[i]) + "\n")
     data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    scc_params = flock.calculate_scc_alignment()
+    if len(scc_params) > 0:
+        data.write("SCC Alignment order parameter\n")
+        for item in scc_params:
+            data.write(str(item)[1:-1] + '\n')
+        data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
     scc_params = flock.calculate_scc_rotation()
     if len(scc_params) > 0:
         data.write("SCC Rotational order parameter\n")
