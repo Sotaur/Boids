@@ -410,6 +410,15 @@ class Flock:
         mag = math.sqrt(vx*vx + vy*vy)
         return mag/(len(group) * self.velocity)
 
+    def calculate_scc_align_param(self, velocities):
+        vx = 0
+        vy = 0
+        for velocity in velocities:
+            vx += velocity[0]
+            vy += velocity[1]
+        mag = math.sqrt(vx * vx + vy * vy)
+        return mag / (len(velocities) * self.velocity)
+
     def get_velocity(self, group):
         to_return = []
         for boid in group:
@@ -456,6 +465,18 @@ class Flock:
 
                     param = self.calculate_rotation_param(scc) / (len(scc[0]) * self.segment_size * pow(self.velocity, 2)) \
                             if len(scc) > 0 else 0
+                    params.append(param)
+                to_return.append(params)
+        return to_return
+
+    def calculate_scc_alignment(self):
+        to_return = []
+        for i in range(0, len(self.scc_velocity), self.calculate_flock_mates):
+            current_block = self.scc_velocity[i:i + self.calculate_flock_mates]
+            for j in range(0, len(current_block)):
+                params = []
+                for k in range(0, len(current_block[0])):
+                    param = self.calculate_scc_align_param(current_block[j][k])
                     params.append(param)
                 to_return.append(params)
         return to_return
