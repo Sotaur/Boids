@@ -507,6 +507,12 @@ def order_parameter_out(data):
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
         data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    scc_params = flock.calculate_scc_correlation()
+    if len(scc_params) > 0:
+        data.write("SCC Correlation\n")
+        for item in scc_params:
+            data.write(str(item)[1:-1] + '\n')
+        data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
 
 
 def phase_out(data):

@@ -481,6 +481,33 @@ class Flock:
                 to_return.append(params)
         return to_return
 
+    def calculate_scc_correlation(self):
+        to_return = []
+        for i in range(0, len(self.scc_velocity), self.calculate_flock_mates):
+            current_block = self.scc_velocity[i:i + self.calculate_flock_mates]
+            for j in range(0, len(current_block)):
+                params = []
+                for k in range(0, len(current_block[0])):
+                    for l in range(k + 1, len(current_block[0])):
+                        if k != l:
+                            param = self.calculate_scc_correlation_param(current_block[j][k], current_block[j][l])
+                            params.append(param)
+                to_return.append(params)
+        return to_return
+
+    def calculate_scc_correlation_param(self, group1, group2):
+        v1 = [0, 0]
+        for velocity in group1:
+            v1[0] += velocity[0]
+            v1[1] += velocity[1]
+        v2 = [0, 0]
+        for velocity in group2:
+            v2[0] += velocity[0]
+            v2[1] += velocity[1]
+        v1_mag = math.sqrt(pow(v1[0], 2) + pow(v1[1], 2))
+        v2_mag = math.sqrt(pow(v2[0], 2) + pow(v2[1], 2))
+        return (v1[0] / v1_mag) * (v2[0] / v2_mag) + (v1[1] / v1_mag) * (v2[1] / v2_mag)
+
     def calculate_correlation(self, group1, group2):
         v1 = [0, 0]
         for boid in group1:
