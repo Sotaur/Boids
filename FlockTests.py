@@ -302,7 +302,7 @@ active_type = {
     'bc': 'block combo',
     'rn': 'random nearest'
 }
-reflection_string = {
+frustration_type = {
     's': "specular reflection",
     'pu': 'position u-turn',
     'vu': 'velocity u-turn',
@@ -314,7 +314,8 @@ reflection_string = {
     'dn': 'dual angular reflection',
     'ca': 'constrained alpha angular',
     'ta': 'triangular alpha angular',
-    'fa': "fixed alpha angular"
+    'fa': "fixed alpha angular",
+    'at': 'attraction'
 
 }
 selection_string = {
@@ -328,11 +329,11 @@ selection_string = {
 def text_string():
     global neighbor_string
     global selection_string
-    global reflection_string
+    global frustration_type
     global active_type
     picked_from = str(flock.nearest_num) if flock.neighbor_type == 's' or flock.neighbor_select == 'n' or flock.neighbor_type == 'a' else 'N/A'
-    frustration_string = ", frustration power: " + str(flock.frustration_power) if flock.frustration else ", periodic boundaries"
-    reflection = ", reflection type: " + reflection_string[flock.reflection_type] if flock.frustration else ", no reflection"
+    frustration_string = ", frustration power: " + str(flock.frustration_power) if flock.frustration != 'p' else ", periodic boundaries"
+    reflection = ", frustration type: " + frustration_type[flock.frustration_type] if flock.frustration != 'p' else ", no frustration"
     neighbor_type = ", neighbor type: " + neighbor_string[flock.neighbor_type]
     pick_type = selection_string[flock.neighbor_select] if flock.neighbor_type != 'a' else active_type[flock.active_type]
     before_split = "Number of boids: " + str(len(flock.boids)) + ", number of flock mates: " + str(flock.num_neighbors) + ", picking from: "\
@@ -417,12 +418,12 @@ def plot_single(interval, bar, individual_bar, text):
 def neighbor_data_out(data, func_args):
     global neighbor_string
     global selection_string
-    global reflection_string
+    global frustration_type
     global active_type
     data.write("This was generated with calculating the flock mates using the " + neighbor_string[flock.neighbor_type]
                + " edges updating every " + str(flock.calculate_flock_mates) + " iterations\n")
     data.write("Neighbors were picked using " + selection_string[flock.neighbor_select] + " reflecting with " +
-               reflection_string[flock.reflection_type] + "\n")
+               frustration_type[flock.frustration_type] + "\n")
     if flock.neighbor_type == 'a' or flock.neighbor_select == 'n':
         data.write("Neighbors were picked out of " + str(flock.nearest_num) + '\n')
     if flock.neighbor_type == 'u':
@@ -463,10 +464,10 @@ def neighbor_data_out(data, func_args):
         if flock.active_type == 'bc':
             data.write("Block size, " + str(flock.block_size) + '\n')
             data.write("Number of topological neighbors, " + str(flock.num_topological) + '\n')
-    if flock.reflection_type == 'ca':
+    if flock.frustration_type == 'ca':
         data.write('Alpha center, ' + str(flock.alpha_center) + '\n')
         data.write('Alpha range, ' + str(flock.alpha_range) + '\n')
-    elif flock.reflection_type == 'ta':
+    elif flock.frustration_type == 'ta':
         data.write('Alpha center, ' + str(flock.alpha_center) + '\n')
         data.write('High, ' + str(flock.triangle_high) + '\n')
         data.write('Low, ' + str(flock.triangle_low) + '\n')
@@ -495,19 +496,19 @@ def order_parameter_out(data):
         data.write(str(flock.one_and_group[i]) + ",")
         data.write(str(flock.group_and_group[i]) + "\n")
     data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
-    scc_params = flock.calculate_scc_alignment()
+    scc_params = flock.calculate_scc_alignment() if flock.frustration_type == 'f' else []
     if len(scc_params) > 0:
         data.write("SCC Alignment order parameter\n")
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
         data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
-    scc_params = flock.calculate_scc_rotation()
+    scc_params = flock.calculate_scc_rotation() if flock.frustration_type == 'f' else []
     if len(scc_params) > 0:
         data.write("SCC Rotational order parameter\n")
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
         data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
-    scc_params = flock.calculate_scc_correlation()
+    scc_params = flock.calculate_scc_correlation() if flock.frustration_type == 'f' else []
     if len(scc_params) > 0:
         data.write("SCC Correlation\n")
         for item in scc_params:
@@ -553,14 +554,15 @@ def data_out(directory, func_args, time_started, local_time=None):
     data.write("Split Frequency\n")
     count = 0.0
     num_split = 0
-    for i in range(0, len(graph.scc_data), flock.calculate_flock_mates):
-        count += 1.0
-        split = graph.scc_data[i][6] - 1
-        if split > 0:
-            num_split += 1
-        data.write(str(split) + '\n')
-    data.write("Num times split, Max possible splits, Percent splits\n")
-    data.write(str(num_split) + "," + str(count) + "," + str(num_split/count) + '\n')
+    if flock.frustration_type == 'f':
+        for i in range(0, len(graph.scc_data), flock.calculate_flock_mates):
+            count += 1.0
+            split = graph.scc_data[i][6] - 1
+            if split > 0:
+                num_split += 1
+            data.write(str(split) + '\n')
+        data.write("Num times split, Max possible splits, Percent splits\n")
+        data.write(str(num_split) + "," + str(count) + "," + str(num_split/count) + '\n')
     data.close()
 
 
@@ -701,8 +703,8 @@ def order_params_only(num_boids, num_iterations, func_args):
 
 
 def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iterations):
-    range_min = flock.calculate_flock_mates if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 0
-    vary_range = input("Vary the number of iterations to recalculate neighbors? (y/n) ") if flock.neighbor_type == 's' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 'n'
+    range_min = flock.calculate_flock_mates if flock.neighbor_select == 'n' or flock.neighbor_select == 'a' else 0
+    vary_range = input("Vary the number of iterations to recalculate neighbors? (y/n) ") if flock.neighbor_select == 'n' or flock.neighbor_select == 'a' else 'n'
     if vary_range == 'y':
         print("Minimum number of iterations for recalculating neighbors: " + str(flock.calculate_flock_mates))
     range_max = int(input("Maximum number of iterations for recalculating neighbors: ")) + 1 if vary_range == 'y' else range_min + 1
@@ -714,7 +716,7 @@ def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iteratio
     max_neighbor = int(input("Maximum number of neighbors: ")) + 1 if vary_neighbor == 'y' else min_neighbor + 1
     neighbor_step = int(input("Neighbor step size: ")) if vary_neighbor == 'y' else 1
     min_pick = flock.nearest_num
-    vary_pick = input("Vary the number of neighbors to pick from? (y/n) ") if flock.neighbor_select == 'n' or flock.neighbor_select == 't' or flock.neighbor_select == 'a' else 'n'
+    vary_pick = input("Vary the number of neighbors to pick from? (y/n) ") if flock.neighbor_select == 'n' or flock.neighbor_select == 'a' else 'n'
     if vary_pick == 'y':
         print("Minimum number of neighbors to pick from: " + str(min_pick))
     max_pick = int(input("Maximum number of neighbors to pick from: ")) + 1 if vary_pick == 'y' else min_pick + 1
@@ -763,8 +765,8 @@ def start():
     with open(config, 'r') as file:
         option = file.readline()[:-1].split(" ")[0]  # p for plot, d for data
         single = file.readline()[:-1].split(" ")[0] if option == "p" else ""  # plot the whole flock, f, or just a boid and flock mates, s
-        flock.frustration = bool(file.readline()[:-1].split(" ")[0])  # frustration, put something, periodic if blank/empty
-        if flock.frustration:
+        flock.frustration = file.readline()[:-1].split(" ")[0]  # frustration type
+        if flock.frustration == 'f':
             # Reflection method:
             # Position u-turn (pu)
             # Velocity u-turn (vu)
@@ -778,12 +780,13 @@ def start():
             # constrained alpha angular (ca)
             # triangular alpha angular (ta)
             # fixed alpha angular (fa)
-            flock.reflection_type = file.readline()[:-1].split(" ")[0]
-            flock.alpha = int(file.readline()[:-1].split(" ")[0]) if flock.reflection_type == 'f' else 0  # alpha for fixed alpha reflection
+            flock.frustration_type = file.readline()[:-1].split(" ")[0]
+            flock.alpha = int(file.readline()[:-1].split(" ")[0]) if flock.frustration_type == 'f' else 0  # alpha for fixed alpha reflection
+        elif flock.frustration == 'a':
+            flock.frustration_type = 'at'
         num_boids = int(file.readline()[:-1].split(" ")[0])  # number of boids
         flock.num_neighbors = int(file.readline()[:-1].split(" ")[0])  # number of flock mates
-        if flock.frustration:
-            flock.frustration_power = float(file.readline()[:-1].split(" ")[0])  # the frustration power
+        flock.frustration_power = float(file.readline()[:-1].split(" ")[0])  # the frustration power
         flock.nearest_num = int(file.readline()[:-1].split(" ")[0])  # number of neighbors to pick flock mates from
         # Neighbor method
         # standard (s)
@@ -842,28 +845,31 @@ def start():
         elif flock.neighbor_type == 'ri':
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # lower
             func_args.append(int(file.readline()[:-1].split(" ")[0]))  # upper
-        if flock.reflection_type == 'ca':
+        if flock.frustration_type == 'ca':
             flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
             flock.alpha_range = float(file.readline()[:-1].split(" ")[0])  # vary by
-        elif flock.reflection_type == 'ta':
+        elif flock.frustration_type == 'ta':
             flock.alpha_center = float(file.readline()[:-1].split(" ")[0])  # center
             flock.triangle_high = float(file.readline()[:-1].split(" ")[0])  # high
             flock.triangle_low = float(file.readline()[:-1].split(" ")[0])  # low of the triangle distribution
-        elif flock.reflection_type == 'fa':
+        elif flock.frustration_type == 'fa':
             flock.alpha = float(file.readline()[:-1].split(" ")[0])
         if option == 'p':
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
-            flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
-                (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
-                and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
             if save == 'y' and multi == 'y':
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
+                flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
+                    (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
+                    and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
                 gen_data(num_boids, save, single, fps, frames, func_args, option, 0)
             else:
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
+                flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
+                    (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
+                    and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
                 display_plot(num_boids, save, single, fps, frames, True, func_args)
         else:
             flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
