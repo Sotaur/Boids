@@ -3,6 +3,7 @@ from Function import Function
 import random
 import math
 import numpy as np
+from decimal import Decimal
 import time
 import sys
 
@@ -30,7 +31,7 @@ class Flock:
         self.neighbor_type = update
         self.frustration_power = 1
         self.nearest_num = 0
-        self.reflection_type = ""
+        self.frustration_type = ""
         self.alpha = 0
         self.frustration = True
         self.neighbor_select = 'n'
@@ -65,6 +66,7 @@ class Flock:
         self.group_two_corr_start = 0
         self.segment_size = 5
         self.scc_velocity = []
+        self.will_turn = None
 
     def __str__(self):
         to_return = ""
@@ -94,7 +96,7 @@ class Flock:
         self.phase_3 = random.randint(0, len(self.boids) - 1)
         while self.phase_3 == self.phase_2 or self.phase_3 == self.phase_1:
             self.phase_3 = random.randint(0, len(self.boids) - 1)
-        self.set_reflect()
+        self.set_frustration()
         self.boid_one = random.randint(0, len(self.boids))
         self.group_one_corr_start = random.randint(0, len(self.boids) - self.num_neighbors * 2)
         while self.group_one_corr_start <= self.boid_one <= self.group_one_corr_start + 2 * self.num_neighbors:
@@ -110,14 +112,10 @@ class Flock:
             boid.calc_velocity(time)
         for boid in self.boids:
             boid.update_velocity()
-        if self.frustration:
-            for boid in self.boids:
-                self.reflect(boid)
+        for boid in self.boids:
+            self.reflect(boid)
         for boid in self.boids:
             boid.position = [boid.position[0] + boid.velocity[0], boid.position[1] + boid.velocity[1]]
-        if not self.frustration:
-            for boid in self.boids:
-                self.periodic(boid)
         if (self.neighbor_type == "s") and self.neighbor_select == 'n' and (time % self.calculate_flock_mates == 0):
             self.new_nearest_neighbors()
         elif (self.neighbor_type == "s") and self.neighbor_select == 'r' and (time % self.calculate_flock_mates == 0):
@@ -128,30 +126,38 @@ class Flock:
         self.calculate_parameters()
 
     def set_reflect(self):
-        if self.reflection_type == "pu":
+        if self.frustration_type == "pu":
             self.reflect = self.position_u_turn
-        elif self.reflection_type == 'vu':
+        elif self.frustration_type == 'vu':
             self.reflect = self.velocity_u_turn
-        elif self.reflection_type == 'p':
+        elif self.frustration_type == 'p':
             self.reflect = self.pseudo_specular
-        elif self.reflection_type == 's':
+        elif self.frustration_type == 's':
             self.reflect = self.specular
-        elif self.reflection_type == 'a':
+        elif self.frustration_type == 'a':
             self.reflect = self.specular
-        elif self.reflection_type == 'f':
+        elif self.frustration_type == 'f':
             self.reflect = self.specular
-        elif self.reflection_type == 'an':
+        elif self.frustration_type == 'an':
             self.reflect = self.alpha_angular
-        elif self.reflection_type == 'bn':
+        elif self.frustration_type == 'bn':
             self.reflect = self.beta_angular
-        elif self.reflection_type == 'dn':
+        elif self.frustration_type == 'dn':
             self.reflect = self.dual_angular
-        elif self.reflection_type == 'ca':
+        elif self.frustration_type == 'ca':
             self.reflect = self.alpha_angular
-        elif self.reflection_type == 'ta':
+        elif self.frustration_type == 'ta':
             self.reflect = self.triangle_alpha
-        elif self.reflection_type == 'fa':
+        elif self.frustration_type == 'fa':
             self.reflect = self.fixed_alpha
+
+    def set_frustration(self):
+        if self.frustration == 'f':
+            self.will_turn = self.basin_reflection
+            self.set_reflect()
+        elif self.frustration == 'a':
+            self.will_turn = lambda x: None
+            self.reflect = self.attraction
 
     def active_update(self):
         if self.active_type == 'r':
@@ -285,13 +291,27 @@ class Flock:
         edge = Edge(neighbor, edge_function)
         boid.node.add_edge(edge)
 
-    def will_turn(self, boid):
+    def basin_reflection(self, boid):
         direction = (boid.position[0]) * boid.velocity[0] + (boid.position[1]) * boid.velocity[1]
         position = boid.position_mag()
         if position <= self.basin or direction >= 0:
             turn_prob = pow(position / self.basin, self.frustration_power)
             return turn_prob > random.uniform(0, 1)
         return False
+
+    # TODO try just left and right, more topological, and larger disruption for inward boids
+    def attraction(self, boid):
+        pos_angle = math.atan2(boid.position[1], boid.position[0])
+        vel_angle = math.atan2(boid.velocity[1], boid.velocity[0])
+        adjusted_angle = float(Decimal(vel_angle - (pos_angle - math.pi / 2)) % Decimal(2 * math.pi))
+        pos_mag = boid.position_mag()
+        if 0.0 < abs(adjusted_angle) < math.pi / 2:
+            vel_angle -= random.gauss(.75, .25) * pow(pos_mag / self.basin, self.frustration_power)
+        elif math.pi / 2 < abs(adjusted_angle) < math.pi:
+            vel_angle += random.gauss(.75, .25) * pow(pos_mag / self.basin, self.frustration_power)
+        else:
+            vel_angle += random.uniform(-.25, .25) * pow(pos_mag / self.basin, self.frustration_power)
+        boid.velocity = [self.velocity * math.cos(vel_angle), self.velocity * math.sin(vel_angle)]
 
     def velocity_u_turn(self, boid):
         if self.will_turn(boid):
