@@ -12,6 +12,8 @@ class Boid:
         self.node = None
         self.nearest = []
         self.calc_velocity = None
+        self.tail = []
+        self.tail_length = 5
 
     def __str__(self):
         to_return = ""
@@ -49,7 +51,7 @@ class Boid:
                 y_avg += edge.go_to().boid.velocity[1] * weight
         x_avg /= effective_num
         y_avg /= effective_num
-        norm = math.sqrt(pow(x_avg, 2) + pow(y_avg, 2)) if (x_avg != 0 and y_avg != 0) else 0.15
+        norm = math.sqrt(pow(x_avg, 2) + pow(y_avg, 2)) if (x_avg != 0 or y_avg != 0) else 0.15
         self.new_velocity = [x_avg * 0.15 / norm, y_avg * 0.15 / norm]
 
     def update_velocity(self):
@@ -57,3 +59,11 @@ class Boid:
 
     def clear_nearest(self):
         self.nearest = []
+
+    def reset(self):
+        self.tail = []
+
+    def update_position(self):
+        self.tail.append(self.position)
+        self.tail = self.tail[-self.tail_length:]
+        self.position = [self.position[0] + self.velocity[0], self.position[1] + self.velocity[1]]
