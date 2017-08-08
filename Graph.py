@@ -17,6 +17,7 @@ class Graph:
         self.scc_std_dev_mean = 0
         self.scc_std_dev_median = 0
         self.flock = None
+        self.sorted = False
         self.num_sccs_calc = 0
         self.scc_data = []
         self.colors = []
@@ -150,10 +151,10 @@ class Graph:
                 self.scc_max = scc_num
             elif scc_num < self.scc_min:
                 self.scc_min = scc_num
-        self.scc_avg = statistics.mean(num_median)
-        self.scc_median = statistics.median(num_median)
-        self.scc_high_median = statistics.median(high_median)
-        self.scc_med_mean = statistics.mean(median_mean)
+        self.scc_avg = statistics.mean(num_median) if len(num_median) > 0 else "No data"
+        self.scc_median = statistics.median(num_median) if len(num_median) > 0 else "No data"
+        self.scc_high_median = statistics.median(high_median) if len(high_median) > 0 else "No data"
+        self.scc_med_mean = statistics.mean(median_mean) if len(median_mean) > 0 else "No data"
         self.scc_std_dev_mean = statistics.mean(std_dev_data) if len(std_dev_data) > 0 else "No data"
         self.scc_std_dev_median = statistics.median(std_dev_data) if len(std_dev_data) > 0 else "No data"
         if len(num_median) > 1:
