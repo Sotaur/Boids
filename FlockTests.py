@@ -273,13 +273,22 @@ The grid obtained in get_flock_grid is a matrix containing the positions of a pa
 """
 
 
-def get_flock_grid(group):
+def make_grid(group):
     grid = ([], [])
     for node in group:
         grid[0].append(node.boid.position[0])  # x position
         grid[1].append(node.boid.position[1])  # y position
     return grid
 
+
+def make_tail_grid(group):
+    grid = ([], [])
+    for node in group:
+        boid = node.boid
+        for tail in boid.tail:
+            grid[0].append(tail[0])  # x position
+            grid[1].append(tail[1])  # y position
+    return grid
 
 neighbor_string = {
     "s": "standard",
@@ -359,7 +368,7 @@ def plot_flock(interval, bar, individual_bar, text):
     grids = []
     sccs.sort(key=lambda scc: len(scc), reverse=True)
     for scc in sccs:
-        grids.append(get_flock_grid(scc))
+        grids.append(make_grid(scc))
     # grid_time = time.perf_counter()
     plt.clf()
     plt.axis([-8, 8, -8, 8])
@@ -372,6 +381,10 @@ def plot_flock(interval, bar, individual_bar, text):
     #    before = time.perf_counter()
         dots.append(plt.scatter(grid[0], grid[1], c=color, s=16))
     #   print('one iter', time.perf_counter() - before)
+    if flock.tails:
+        tail_group = graph.network[:5]
+        tail_grid = make_tail_grid(tail_group)
+        dots.append(plt.scatter(tail_grid[0], tail_grid[1], c='k', s=5))
     # quiver_time = time.perf_counter()
     # print(update - start)
     # print(grid_time - update)
@@ -393,8 +406,8 @@ def plot_single(interval, bar, individual_bar, text):
     for edge in boid[0].edges:
         flock_mates.append(edge.go_to())
     grids = []
-    grids.append(get_flock_grid(boid))
-    grids.append(get_flock_grid(flock_mates))
+    grids.append(make_grid(boid))
+    grids.append(make_grid(flock_mates))
     # grid_time = time.perf_counter()
     plt.clf()
     plt.axis([-8, 8, -8, 8])
@@ -404,6 +417,10 @@ def plot_single(interval, bar, individual_bar, text):
         grid = grids[i]
         color = colors[i]
         dots.append(plt.scatter(grid[0], grid[1], c=color, s=16))
+    if flock.tails is True:
+        flock_mates.append(boid[0])
+        tails = make_tail_grid(flock_mates)
+        dots.append(plt.scatter(tails[0], tails[1], c='k', s=4))
     # quiver_time = time.perf_counter()
     # print(len(quiver))
     # print(str(update - start))
@@ -592,7 +609,7 @@ def display_plot(num_boids, save, single, fps, frames, individual_bar, func_args
         bar = progressbar.ProgressBar(max_value=frames * fps) if individual_bar else None
         if individual_bar:
             bar.start()
-        ani = animation.FuncAnimation(fig, plot_flock, frames=frames * fps, fargs=[bar, individual_bar, text]) if single == 'f'\
+        ani = animation.FuncAnimation(fig, plot_flock, frames=frames * fps, fargs=[bar, individual_bar, text]) if single == 'f' or single == 'ft' \
             else animation.FuncAnimation(fig, plot_single, frames=frames * fps, fargs=[bar, individual_bar, text])
         local_time = time.localtime()
         filename = directory + "/animation-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5]) + '.mp4'
@@ -764,7 +781,10 @@ def start():
     config = input("Input file? ")
     with open(config, 'r') as file:
         option = file.readline()[:-1].split(" ")[0]  # p for plot, d for data
-        single = file.readline()[:-1].split(" ")[0] if option == "p" else ""  # plot the whole flock, f, or just a boid and flock mates, s
+        plot_type = file.readline()[:-1].split(" ")[0] if option == "p" else ""  # plot the whole flock, f, or just a boid and flock mates, s
+        if plot_type == 'ft' or plot_type == 'st':
+            flock.tail_length = int(file.readline()[:-1].split(" ")[0])
+            flock.tails = True
         flock.frustration = file.readline()[:-1].split(" ")[0]  # frustration type
         if flock.frustration == 'f':
             # Reflection method:
@@ -863,14 +883,14 @@ def start():
                 flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
                     (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
                     and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
-                gen_data(num_boids, save, single, fps, frames, func_args, option, 0)
+                gen_data(num_boids, save, plot_type, fps, frames, func_args, option, 0)
             else:
                 fps = int(file.readline()[:-1].split(" ")[0])  # how many fps to make the video
                 frames = int(file.readline()[:-1].split(" ")[0])  # how long to make the video, in seconds
                 flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
                     (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
                     and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
-                display_plot(num_boids, save, single, fps, frames, True, func_args)
+                display_plot(num_boids, save, plot_type, fps, frames, True, func_args)
         else:
             flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
                 (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
