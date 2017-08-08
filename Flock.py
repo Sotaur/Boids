@@ -67,6 +67,8 @@ class Flock:
         self.segment_size = 5
         self.scc_velocity = []
         self.will_turn = None
+        self.tail_length = 5
+        self.tails = False
 
     def __str__(self):
         to_return = ""
@@ -115,7 +117,7 @@ class Flock:
         for boid in self.boids:
             self.reflect(boid)
         for boid in self.boids:
-            boid.position = [boid.position[0] + boid.velocity[0], boid.position[1] + boid.velocity[1]]
+            boid.update_position()
         if (self.neighbor_type == "s") and self.neighbor_select == 'n' and (time % self.calculate_flock_mates == 0):
             self.new_nearest_neighbors()
         elif (self.neighbor_type == "s") and self.neighbor_select == 'r' and (time % self.calculate_flock_mates == 0):
@@ -306,9 +308,9 @@ class Flock:
         adjusted_angle = float(Decimal(vel_angle - (pos_angle - math.pi / 2)) % Decimal(2 * math.pi))
         pos_mag = boid.position_mag()
         if 0.0 < abs(adjusted_angle) < math.pi / 2:
-            vel_angle -= random.gauss(.75, .25) * pow(pos_mag / self.basin, self.frustration_power)
+            vel_angle -= random.triangular(0, 1, .5) * pow(pos_mag / self.basin, self.frustration_power)
         elif math.pi / 2 < abs(adjusted_angle) < math.pi:
-            vel_angle += random.gauss(.75, .25) * pow(pos_mag / self.basin, self.frustration_power)
+            vel_angle += random.triangular(0, 1, .5) * pow(pos_mag / self.basin, self.frustration_power)
         else:
             vel_angle += random.uniform(-.25, .25) * pow(pos_mag / self.basin, self.frustration_power)
         boid.velocity = [self.velocity * math.cos(vel_angle), self.velocity * math.sin(vel_angle)]
@@ -401,6 +403,8 @@ class Flock:
         self.one_and_group = []
         self.group_and_group = []
         self.scc_velocity = []
+        for boid in self.boids:
+            boid.reset()
 
     def nearest_neighbors(self):
         # start = time.perf_counter()
