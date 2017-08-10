@@ -324,7 +324,9 @@ frustration_type = {
     'ca': 'constrained alpha angular',
     'ta': 'triangular alpha angular',
     'fa': "fixed alpha angular",
-    'at': 'attraction'
+    't': 'triangular attraction',
+    'g': 'gaussian attraction',
+    'u': 'uniform attraction',
 
 }
 selection_string = {
@@ -488,6 +490,16 @@ def neighbor_data_out(data, func_args):
         data.write('Alpha center, ' + str(flock.alpha_center) + '\n')
         data.write('High, ' + str(flock.triangle_high) + '\n')
         data.write('Low, ' + str(flock.triangle_low) + '\n')
+    elif flock.frustration_type == 't':
+        data.write("Low, " + str(flock.attraction_params[0]) + '\n')
+        data.write("High, " + str(flock.attraction_params[1]) + '\n')
+        data.write("Mode, " + str(flock.attraction_params[2]) + '\n')
+    elif flock.frustration_type == 'g':
+        data.write("Mu, " + str(flock.attraction_params[0]) + '\n')
+        data.write("Sigma, " + str(flock.attraction_params[1]) + '\n')
+    elif flock.frustration_type == 'u':
+        data.write("Low, " + str(flock.attraction_params[0]) + '\n')
+        data.write("High, " + str(flock.attraction_params[1]) + '\n')
 
 
 def order_parameter_out(data):
@@ -786,24 +798,21 @@ def start():
             flock.tail_length = int(file.readline()[:-1].split(" ")[0])
             flock.tails = True
         flock.frustration = file.readline()[:-1].split(" ")[0]  # frustration type
-        if flock.frustration == 'f':
-            # Reflection method:
-            # Position u-turn (pu)
-            # Velocity u-turn (vu)
-            # specular reflection (s)
-            # alpha reflection (a)
-            # fixed alpha (f)
-            # pseudo-specular (p)
-            # alpha angular (an)
-            # beta angular (bn)
-            # dual angular (dn)
-            # constrained alpha angular (ca)
-            # triangular alpha angular (ta)
-            # fixed alpha angular (fa)
-            flock.frustration_type = file.readline()[:-1].split(" ")[0]
-            flock.alpha = int(file.readline()[:-1].split(" ")[0]) if flock.frustration_type == 'f' else 0  # alpha for fixed alpha reflection
-        elif flock.frustration == 'a':
-            flock.frustration_type = 'at'
+        # Reflection method:
+        # Position u-turn (pu)
+        # Velocity u-turn (vu)
+        # specular reflection (s)
+        # alpha reflection (a)
+        # fixed alpha (f)
+        # pseudo-specular (p)
+        # alpha angular (an)
+        # beta angular (bn)
+        # dual angular (dn)
+        # constrained alpha angular (ca)
+        # triangular alpha angular (ta)
+        # fixed alpha angular (fa)
+        flock.frustration_type = file.readline()[:-1].split(" ")[0]
+        flock.alpha = int(file.readline()[:-1].split(" ")[0]) if flock.frustration_type == 'f' else 0  # alpha for fixed alpha reflection
         num_boids = int(file.readline()[:-1].split(" ")[0])  # number of boids
         flock.num_neighbors = int(file.readline()[:-1].split(" ")[0])  # number of flock mates
         flock.frustration_power = float(file.readline()[:-1].split(" ")[0])  # the frustration power
@@ -874,6 +883,16 @@ def start():
             flock.triangle_low = float(file.readline()[:-1].split(" ")[0])  # low of the triangle distribution
         elif flock.frustration_type == 'fa':
             flock.alpha = float(file.readline()[:-1].split(" ")[0])
+        elif flock.frustration_type == 'u':
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # low
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # high
+        elif flock.frustration_type == 't':
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # low
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # high
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # mode
+        elif flock.attraction_params == 'g':
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # mu
+            flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # sigma
         if option == 'p':
             save = file.readline()[:-1].split(" ")[0]  # whether to save the animation
             multi = file.readline()[:-1].split(" ")[0] if save == 'y' else ""  # whether to batch the data
