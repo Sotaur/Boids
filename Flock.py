@@ -69,6 +69,7 @@ class Flock:
         self.will_turn = None
         self.tail_length = 5
         self.tails = False
+        self.attraction_params = []
 
     def __str__(self):
         to_return = ""
@@ -86,6 +87,7 @@ class Flock:
                 boid.position = [random.uniform(-5, 5), random.uniform(-5, 5)]
             boid.angle = random.uniform(-math.pi * 2, math.pi * 2)
             boid.velocity = [self.velocity * math.cos(boid.angle), self.velocity * math.sin(boid.angle)]
+            boid.tail_length = self.tail_length
         self.group_one_start = random.randint(0, len(self.boids) - 1 - self.group_size)
         self.group_two_start = random.randint(0, len(self.boids) - 1 - self.group_size)
         while self.group_one_start < self.group_two_start < self.group_one_start + self.group_size\
@@ -159,7 +161,15 @@ class Flock:
             self.set_reflect()
         elif self.frustration == 'a':
             self.will_turn = lambda x: None
-            self.reflect = self.attraction
+            self.reflect = self.get_attraction_method()
+
+    def get_attraction_method(self):
+        if self.frustration_type == 't':
+            return self.triangular_attraction
+        elif self.frustration_type == 'g':
+            return self.gauss_attraction
+        elif self.frustration_type == 'u':
+            return self.uniform_attraction
 
     def active_update(self):
         if self.active_type == 'r':
@@ -301,18 +311,39 @@ class Flock:
             return turn_prob > random.uniform(0, 1)
         return False
 
-    # TODO try just left and right, more topological, and larger disruption for inward boids
-    def attraction(self, boid):
+    def triangular_attraction(self, boid):
         pos_angle = math.atan2(boid.position[1], boid.position[0])
         vel_angle = math.atan2(boid.velocity[1], boid.velocity[0])
         adjusted_angle = float(Decimal(vel_angle - (pos_angle - math.pi / 2)) % Decimal(2 * math.pi))
         pos_mag = boid.position_mag()
         if 0.0 < abs(adjusted_angle) < math.pi / 2:
-            vel_angle -= random.triangular(0, 1, .5) * pow(pos_mag / self.basin, self.frustration_power)
+            vel_angle -= random.triangular(self.attraction_params[0], self.attraction_params[1], self.attraction_params[2])\
+                         * pow(pos_mag / self.basin, self.frustration_power)
         elif math.pi / 2 < abs(adjusted_angle) < math.pi:
-            vel_angle += random.triangular(0, 1, .5) * pow(pos_mag / self.basin, self.frustration_power)
-        else:
-            vel_angle += random.uniform(-.25, .25) * pow(pos_mag / self.basin, self.frustration_power)
+            vel_angle += random.triangular(self.attraction_params[0], self.attraction_params[1], self.attraction_params[2])\
+                         * pow(pos_mag / self.basin, self.frustration_power)
+        boid.velocity = [self.velocity * math.cos(vel_angle), self.velocity * math.sin(vel_angle)]
+
+    def uniform_attraction(self, boid):
+        pos_angle = math.atan2(boid.position[1], boid.position[0])
+        vel_angle = math.atan2(boid.velocity[1], boid.velocity[0])
+        adjusted_angle = float(Decimal(vel_angle - (pos_angle - math.pi / 2)) % Decimal(2 * math.pi))
+        pos_mag = boid.position_mag()
+        if 0.0 < abs(adjusted_angle) < math.pi / 2:
+            vel_angle -= random.uniform(self.attraction_params[0], self.attraction_params[1]) * pow(pos_mag / self.basin, self.frustration_power)
+        elif math.pi / 2 < abs(adjusted_angle) < math.pi:
+            vel_angle += random.uniform(self.attraction_params[0], self.attraction_params[1]) * pow(pos_mag / self.basin, self.frustration_power)
+        boid.velocity = [self.velocity * math.cos(vel_angle), self.velocity * math.sin(vel_angle)]
+
+    def gauss_attraction(self, boid):
+        pos_angle = math.atan2(boid.position[1], boid.position[0])
+        vel_angle = math.atan2(boid.velocity[1], boid.velocity[0])
+        adjusted_angle = float(Decimal(vel_angle - (pos_angle - math.pi / 2)) % Decimal(2 * math.pi))
+        pos_mag = boid.position_mag()
+        if 0.0 < abs(adjusted_angle) < math.pi / 2:
+            vel_angle -= random.gauss(self.attraction_params[0], self.attraction_params[1]) * pow(pos_mag / self.basin, self.frustration_power)
+        elif math.pi / 2 < abs(adjusted_angle) < math.pi:
+            vel_angle += random.gauss(self.attraction_params[0], self.attraction_params[1]) * pow(pos_mag / self.basin, self.frustration_power)
         boid.velocity = [self.velocity * math.cos(vel_angle), self.velocity * math.sin(vel_angle)]
 
     def velocity_u_turn(self, boid):
