@@ -13,6 +13,7 @@ import matplotlib.pyplot as plt
 import matplotlib.animation as animation
 import statistics
 import progressbar
+from pathlib import Path
 import cProfile
 
 
@@ -500,6 +501,8 @@ def neighbor_data_out(data, func_args):
     elif flock.frustration_type == 'u':
         data.write("Low, " + str(flock.attraction_params[0]) + '\n')
         data.write("High, " + str(flock.attraction_params[1]) + '\n')
+    elif flock.frustration_type == 'fa':
+        data.write("Alpha, " + str(flock.alpha) + '\n')
 
 
 def order_parameter_out(data):
@@ -543,6 +546,18 @@ def order_parameter_out(data):
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
         data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    boid = flock.boids[0]
+    data.write("Boid velocity change\n")
+    neg_count = 0
+    near_zero = 0
+    for velocity in boid.velocity_change:
+        if velocity < 0:
+            neg_count += 1
+        if -.25 < velocity < .25:
+            near_zero += 1
+        data.write(str(velocity) + '\n')
+    data.write("Negative, " + str(neg_count) + ", Near Zero, " + str(near_zero) + '\n')
+    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
 
 
 def phase_out(data):
@@ -791,6 +806,8 @@ def duplicate_order_params(num_duplicate, num_boids, num_iterations, func_args):
 def start():
     sys.setrecursionlimit(sys.getrecursionlimit() * 10)  # Prevents python from having issues in calculating sccs for large flocks
     config = input("Input file? ")
+    while not Path(config).is_file():
+        config = input("Input file? ")
     with open(config, 'r') as file:
         option = file.readline()[:-1].split(" ")[0]  # p for plot, d for data
         plot_type = file.readline()[:-1].split(" ")[0] if option == "p" else ""  # plot the whole flock, f, or just a boid and flock mates, s
