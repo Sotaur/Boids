@@ -14,6 +14,7 @@ class Boid:
         self.calc_velocity = None
         self.tail = []
         self.tail_length = 5
+        self.velocity_change = []
 
     def __str__(self):
         to_return = ""
@@ -55,6 +56,8 @@ class Boid:
         self.new_velocity = [x_avg * 0.15 / norm, y_avg * 0.15 / norm]
 
     def update_velocity(self):
+        velocity_change = self.velocity[0] * self.new_velocity[0] + self.velocity[1] * self.new_velocity[1]
+        self.velocity_change.append(velocity_change / pow(0.15, 2))
         self.velocity = self.new_velocity
 
     def clear_nearest(self):
@@ -62,6 +65,7 @@ class Boid:
 
     def reset(self):
         self.tail = []
+        self.velocity_change = []
 
     def update_position(self):
         self.tail.append(self.position)
