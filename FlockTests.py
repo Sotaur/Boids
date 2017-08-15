@@ -546,17 +546,30 @@ def order_parameter_out(data):
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
         data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
-    boid = flock.boids[0]
     data.write("Boid velocity change\n")
-    neg_count = 0
-    near_zero = 0
-    for velocity in boid.velocity_change:
-        if velocity < 0:
-            neg_count += 1
-        if -.25 < velocity < .25:
-            near_zero += 1
-        data.write(str(velocity) + '\n')
-    data.write("Negative, " + str(neg_count) + ", Near Zero, " + str(near_zero) + '\n')
+    data.write("Boid 1, Boid 2, Boid 3, Flock Avg\n")
+    neg_count = [0.0, 0.0, 0.0]
+    near_zero = [0.0, 0.0, 0.0]
+    boids = random.sample(flock.boids, 3)
+    num = len(flock.boids[0].velocity_change)
+    for i in range(0, num):
+        j = 0
+        for boid in boids:
+            velocity = boid.velocity_change[i]
+            if velocity < 0:
+                neg_count[j] += 1
+            if -.25 < velocity < .25:
+                near_zero[j] += 1
+            data.write(str(velocity) + ',')
+            j += 1
+        avg = 0.0
+        for boid in flock.boids:
+            avg += boid.velocity_change[i]
+        avg /= len(flock.boids)
+        data.write(str(avg) + '\n')
+    for i in range(0, 3):
+        data.write('Boid' + str(i) + '\n')
+        data.write("Negative, " + str(neg_count[i] / num) + ", Near Zero, " + str(near_zero[i] / num) + '\n')
     data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
 
 
@@ -567,6 +580,24 @@ def phase_out(data):
                "Boid 3 position angle, Boid 3 velocity angle\n")
     for i in range(0, len(flock.phase)):
         data.write(str(flock.phase[i])[1:-1] + '\n')
+
+
+def scc_data_out(data):
+    data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
+    for item in graph.scc_data:
+        data.write(str(item)[1:-1] + '\n')
+    data.write("Split Frequency\n")
+    count = 0.0
+    num_split = 0
+    if flock.frustration_type == 'f':
+        for i in range(0, len(graph.scc_data), flock.calculate_flock_mates):
+            count += 1.0
+            split = graph.scc_data[i][6] - 1
+            if split > 0:
+                num_split += 1
+            data.write(str(split) + '\n')
+        data.write("Num times split, Max possible splits, Percent splits\n")
+        data.write(str(num_split) + "," + str(count) + "," + str(num_split / count) + '\n')
 
 
 def data_out(directory, func_args, time_started, local_time=None):
@@ -592,21 +623,8 @@ def data_out(directory, func_args, time_started, local_time=None):
         data.write('Periodic boundary conditions were used\n')
     order_parameter_out(data)
     phase_out(data)
-    data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
-    for item in graph.scc_data:
-        data.write(str(item)[1:-1] + '\n')
-    data.write("Split Frequency\n")
-    count = 0.0
-    num_split = 0
-    if flock.frustration_type == 'f':
-        for i in range(0, len(graph.scc_data), flock.calculate_flock_mates):
-            count += 1.0
-            split = graph.scc_data[i][6] - 1
-            if split > 0:
-                num_split += 1
-            data.write(str(split) + '\n')
-        data.write("Num times split, Max possible splits, Percent splits\n")
-        data.write(str(num_split) + "," + str(count) + "," + str(num_split/count) + '\n')
+    if flock.neighbor_select != 't':
+        scc_data_out(data)
     data.close()
 
 
@@ -907,7 +925,7 @@ def start():
             flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # low
             flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # high
             flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # mode
-        elif flock.attraction_params == 'g':
+        elif flock.frustration_type == 'g':
             flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # mu
             flock.attraction_params.append(float(file.readline()[:-1].split(" ")[0]))  # sigma
         if option == 'p':
