@@ -568,7 +568,7 @@ def order_parameter_out(data):
         avg /= len(flock.boids)
         data.write(str(avg) + '\n')
     for i in range(0, 3):
-        data.write('Boid' + str(i) + '\n')
+        data.write('Boid ' + str(i) + '\n')
         data.write("Negative, " + str(neg_count[i] / num) + ", Near Zero, " + str(near_zero[i] / num) + '\n')
     data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
 
