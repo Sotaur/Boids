@@ -260,7 +260,7 @@ def scc_order_parameters(sccs):
         flock.scc_velocity.append(boid_velocities)
 
 
-def update_flock(duration, bar=None):
+def update_flock(duration, bar=None, output=None):
     for i in range(duration):
         flock.update_flock(i)
         sccs = graph.calculate_scc()
@@ -269,6 +269,8 @@ def update_flock(duration, bar=None):
             scc_order_parameters(sccs)
         if bar is not None:
             bar.update(i)
+        if output is not None:
+            output.write(str(flock.output()) + '\n')
 """
 The grid obtained in get_flock_grid is a matrix containing the positions of a particular subgroup of boids
 """
@@ -374,7 +376,7 @@ def plot_flock(interval, bar, individual_bar, text):
         grids.append(make_grid(scc))
     # grid_time = time.perf_counter()
     plt.clf()
-    plt.axis([-8, 8, -8, 8])
+    plt.axis([-7, 7, -7, 7])
     fig.text(1, .0085, text, fontsize=7, ha='right', va="bottom", multialignment="right")
     # setup_time = time.perf_counter()
     colors = graph.get_colors(len(sccs))
@@ -514,38 +516,38 @@ def order_parameter_out(data):
                    + str(flock.group_one_align[i]) + ", "
                    + str(flock.group_two_align[i]) + '\n')
     align_param = flock.calculate_rotation_params()
-    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    data.write("\n\n")
     data.write("\nRotational order parameter\n")
     data.write("Segment size, " + str(flock.segment_size) + '\n')
     data.write("Flock, Group 1, Group 2\n")
     for item in align_param:
         data.write(str(item)[1:-1] + '\n')
-    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    data.write("\n\n")
     data.write("\nCorrelation parameter\n")
     data.write("One and Flock, One and Group, Group and Group\n")
     for i in range(0, len(flock.one_and_group)):
         data.write(str(flock.one_and_flock[i]) + ",")
         data.write(str(flock.one_and_group[i]) + ",")
         data.write(str(flock.group_and_group[i]) + "\n")
-    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    data.write("\n\n")
     scc_params = flock.calculate_scc_alignment() if flock.frustration_type == 'f' else []
     if len(scc_params) > 0:
         data.write("SCC Alignment order parameter\n")
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
-        data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+        data.write("\n\n")
     scc_params = flock.calculate_scc_rotation() if flock.frustration_type == 'f' else []
     if len(scc_params) > 0:
         data.write("SCC Rotational order parameter\n")
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
-        data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+        data.write("\n\n")
     scc_params = flock.calculate_scc_correlation() if flock.frustration_type == 'f' else []
     if len(scc_params) > 0:
         data.write("SCC Correlation\n")
         for item in scc_params:
             data.write(str(item)[1:-1] + '\n')
-        data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+        data.write("\n\n")
     data.write("Boid velocity change\n")
     data.write("Boid 1, Boid 2, Boid 3, Flock Avg\n")
     neg_count = [0.0, 0.0, 0.0]
@@ -568,13 +570,13 @@ def order_parameter_out(data):
         avg /= len(flock.boids)
         data.write(str(avg) + '\n')
     for i in range(0, 3):
-        data.write('Boid ' + str(i) + '\n')
+        data.write('\nBoid ' + str(i) + '\n')
         data.write("Negative, " + str(neg_count[i] / num) + ", Near Zero, " + str(near_zero[i] / num) + '\n')
-    data.write("@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@,@@@@@@\n")
+    data.write("\n\n")
 
 
 def phase_out(data):
-    data.write("Phase Space\n")
+    data.write("\nPhase Space\n")
     data.write("Boid 1 position angle, Boid 1 velocity angle,"
                "Boid 2 position angle, Boid 2 velocity angle,"
                "Boid 3 position angle, Boid 3 velocity angle\n")
@@ -583,10 +585,10 @@ def phase_out(data):
 
 
 def scc_data_out(data):
-    data.write("Number, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
+    data.write("\nNumber, Max, Min, Average, Median, Std Dev, Num Large SCC\n")
     for item in graph.scc_data:
         data.write(str(item)[1:-1] + '\n')
-    data.write("Split Frequency\n")
+    data.write("\nSplit Frequency\n")
     count = 0.0
     num_split = 0
     if flock.frustration_type == 'f':
@@ -596,7 +598,7 @@ def scc_data_out(data):
             if split > 0:
                 num_split += 1
             data.write(str(split) + '\n')
-        data.write("Num times split, Max possible splits, Percent splits\n")
+        data.write("\nNum times split, Max possible splits, Percent splits\n")
         data.write(str(num_split) + "," + str(count) + "," + str(num_split / count) + '\n')
 
 
@@ -640,7 +642,7 @@ def display_plot(num_boids, save, single, fps, frames, individual_bar, func_args
     flock.reset()
     graph.reset()
     initialize_graph(num_boids, func_args)
-    plt.axis([-8, 8, -8, 8])
+    plt.axis([-7, 7, -7, 7])
     text = text_string()
     if save == 'y':
         date = datetime.date(2017, 1, 1)
@@ -764,6 +766,13 @@ def order_params_only(num_boids, num_iterations, func_args):
     data_out(directory, func_args, time_started)
 
 
+def machine_learning_run(num_boids, num_iterations, func_args, output, directory, local_time):
+    time_started = time.perf_counter()
+    initialize_graph(num_boids, func_args)
+    update_flock(num_iterations, output=output)
+    data_out(directory, func_args, time_started, local_time)
+
+
 def gen_data(num_boids, save, single, fps, frames, func_args, mode, num_iterations):
     range_min = flock.calculate_flock_mates if flock.neighbor_select == 'n' or flock.neighbor_select == 'a' else 0
     vary_range = input("Vary the number of iterations to recalculate neighbors? (y/n) ") if flock.neighbor_select == 'n' or flock.neighbor_select == 'a' else 'n'
@@ -821,13 +830,30 @@ def duplicate_order_params(num_duplicate, num_boids, num_iterations, func_args):
         flock.reset()
 
 
+def machine_learning_data(num_boids, num_iterations, num_repeat, func_args):
+    bar = progressbar.ProgressBar(max_value=num_repeat)
+    bar.start()
+    date = datetime.date(2017, 1, 1)
+    directory = base_directory + 'machine-learning-data-' + str(date.today())
+    if not os.path.exists(directory):
+        os.makedirs(directory)
+    for i in range(0, num_repeat):
+        bar.update(i)
+        local_time = time.localtime()
+        output = open(directory + "/ml-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5]) + ".txt", 'w')
+        machine_learning_run(num_boids, num_iterations, func_args, output, directory, local_time)
+        output.close()
+        graph.reset()
+        flock.reset()
+
+
 def start():
     sys.setrecursionlimit(sys.getrecursionlimit() * 10)  # Prevents python from having issues in calculating sccs for large flocks
     config = input("Input file? ")
     while not Path(config).is_file():
         config = input("Input file? ")
     with open(config, 'r') as file:
-        option = file.readline()[:-1].split(" ")[0]  # p for plot, d for data
+        option = file.readline()[:-1].split(" ")[0]  # p for plot, d for data, ml for machine learning data
         plot_type = file.readline()[:-1].split(" ")[0] if option == "p" else ""  # plot the whole flock, f, or just a boid and flock mates, s
         if plot_type == 'ft' or plot_type == 'st':
             flock.tail_length = int(file.readline()[:-1].split(" ")[0])
@@ -945,7 +971,7 @@ def start():
                     (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
                     and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
                 display_plot(num_boids, save, plot_type, fps, frames, True, func_args)
-        else:
+        elif option == 'd':
             flock.calculate_flock_mates = int(file.readline()[:-1].split(" ")[0]) if \
                 (flock.neighbor_type == 's' or flock.neighbor_type == 'a') \
                 and flock.neighbor_select != 't' else 'N/A'  # neighbors aren't recalculated for topological neighbors
@@ -959,8 +985,13 @@ def start():
             else:
                 num_duplicate = int(file.readline()[:-1].split(" ")[0])
                 duplicate_order_params(num_duplicate, num_boids, num_iterations, func_args)
+        elif option == 'ml':
+            num_iterations = int(file.readline()[:-1].split(" ")[0])
+            num_repeat = int(file.readline()[:-1].split(" ")[0])
+            machine_learning_data(num_boids, num_iterations, num_repeat, func_args)
     finish_time = time.perf_counter()
     print("\nRuntime: " + str(finish_time - start_time))
+
 
 #  cProfile.run('start()')
 start()
