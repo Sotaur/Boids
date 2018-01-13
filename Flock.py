@@ -604,4 +604,9 @@ class Flock:
                                                                self.boids[self.group_two_corr_start:self.group_two_corr_start + 2 * self.num_neighbors]))
 
     def output(self):
-        return [[boid.position for boid in self.boids], [boid.velocity for boid in self.boids]]
+        pos = [boid.position for boid in self.boids]
+        vel = [boid.velocity for boid in self.boids]
+        out = []
+        for i in range(0, len(pos)):
+            out.append([*pos[i], *vel[i]])
+        return out

@@ -14,6 +14,7 @@ import matplotlib.animation as animation
 import statistics
 import progressbar
 from pathlib import Path
+import numpy as np
 import cProfile
 
 
@@ -261,6 +262,7 @@ def scc_order_parameters(sccs):
 
 
 def update_flock(duration, bar=None, output=None):
+    array = []
     for i in range(duration):
         flock.update_flock(i)
         sccs = graph.calculate_scc()
@@ -270,13 +272,15 @@ def update_flock(duration, bar=None, output=None):
         if bar is not None:
             bar.update(i)
         if output is not None:
-            output.write(str(flock.output()) + '\n')
-"""
-The grid obtained in get_flock_grid is a matrix containing the positions of a particular subgroup of boids
-"""
+            array.append(flock.output())
+    if output is not None:
+        np.save(output, arr=np.array(array))
 
 
 def make_grid(group):
+    """
+    The grid obtained in get_flock_grid is a matrix containing the positions of a particular subgroup of boids
+    """
     grid = ([], [])
     for node in group:
         grid[0].append(node.boid.position[0])  # x position
@@ -840,9 +844,8 @@ def machine_learning_data(num_boids, num_iterations, num_repeat, func_args):
     for i in range(0, num_repeat):
         bar.update(i)
         local_time = time.localtime()
-        output = open(directory + "/ml-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5]) + ".txt", 'w')
+        output = directory + "/ml-" + str(local_time[3]) + "-" + str(local_time[4]) + "-" + str(local_time[5])
         machine_learning_run(num_boids, num_iterations, func_args, output, directory, local_time)
-        output.close()
         graph.reset()
         flock.reset()
 
